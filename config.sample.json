@@ -1,0 +1,15 @@
+{
+  "express": {
+    "memcached_hosts": "127.0.0.1:11211",
+    "session_key": "",
+    "port": 8000
+  },
+  "google": {
+    "key": "",
+    "secret": "",
+    "callback_root": "http://localhost:8000"
+  },
+  "mongo": {
+    "connection_string": "mongodb://localhost/ar"
+  }
+}

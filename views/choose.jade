@@ -1,0 +1,12 @@
+extends main
+
+block content
+  h2 Choose Your Account
+  form()
+    for form in forms
+      div(class="form-group")
+        label(for=form.name,class="control-label")= form.label
+        select(id=form.name,name=form.name,class="form-control")
+          for option in form.options
+            option(value=option.value,selected=option.selected)= option.name
+    input(type="submit",class="btn btn-primary",value="Next") 

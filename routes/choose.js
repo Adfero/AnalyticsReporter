@@ -1,14 +1,5 @@
-var OAuth = require('oauth');
-var config = require('../config.json');
 var querystring = require('querystring');
-
-var oauth2 = new OAuth.OAuth2(
-  config.google.key,
-  config.google.secret, 
-  '', 
-  'https://accounts.google.com/o/oauth2/auth',
-  'https://accounts.google.com/o/oauth2/token', 
-  null);
+var googleanalytics = require('../lib/googleanalytics');
 
 exports.index = function(req,res) {
   loadData(req,function(error,accounts,properties,profiles) {
@@ -71,15 +62,15 @@ exports.index = function(req,res) {
 }
 
 function loadData(req,callback) {
-  loadAccounts(req,function(err,accounts) {
+  googleanalytics.loadAccounts(req.user.token,function(err,accounts) {
     if (err) {
       callback(err);
     } else if (req.query.account) {
-      loadProperties(req,function(err,properties) {
+      googleanalytics.loadProperties(req.user.token,req.query.account,function(err,properties) {
         if (err) {
           callback(err);
         } else if (req.query.property) {
-          loadProfiles(req,function(err,profiles) {
+          googleanalytics.loadProfiles(req.user.token,req.query.account,req.query.property,function(err,profiles) {
             if (err) {
               callback(err);
             } else {
@@ -92,40 +83,6 @@ function loadData(req,callback) {
       });
     } else {
       callback(null,accounts);
-    }
-  })
-}
-
-function loadAccounts(req,callback) {
-  oauth2.get('https://www.googleapis.com/analytics/v3/management/accounts',req.user.token,function (e, data) {
-    if (e) {
-      callback(e);
-    } else if (data) {
-      var accounts = JSON.parse(data);
-      callback(null,accounts.items)
-    }
-  });
-}
-
-function loadProperties(req,callback) {
-  oauth2.get('https://www.googleapis.com/analytics/v3/management/accounts/' + req.query.account + '/webproperties',req.user.token,function (e, data) {
-    if (e) {
-      callback(e);
-    } else if (data) {
-      var properties = JSON.parse(data);
-      callback(null,properties.items)
-    }
-  });
-}
-
-function loadProfiles(req,callback) {
-  var url = 'https://www.googleapis.com/analytics/v3/management/accounts/' + req.query.account + '/webproperties/' + req.query.property + '/profiles';
-  oauth2.get(url,req.user.token,function (e, data) {
-    if (e) {
-      callback(e);
-    } else if (data) {
-      var profiles = JSON.parse(data);
-      callback(null,profiles.items)
     }
   });
 }

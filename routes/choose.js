@@ -6,10 +6,8 @@ exports.index = function(req,res) {
     if (error) {
       console.error(error);
     }
-    if (req.query.account && req.query.property && req.query.profile) {
+    if (req.query.profile) {
       res.redirect('/report?' + querystring.stringify({
-        'account': req.query.account,
-        'property': req.query.property,
         'profile': req.query.profile
       }));
     } else {
@@ -27,7 +25,7 @@ exports.index = function(req,res) {
           })
         });
       }
-      if (properties && req.query.account) {
+      if (properties && req.query.account && isValidData(req.query.account,accounts)) {
         forms.push({
           'name': 'property',
           'label': 'Properties',
@@ -40,7 +38,7 @@ exports.index = function(req,res) {
           })
         });
       }
-      if (profiles && req.query.property) {
+      if (profiles && req.query.property && isValidData(req.query.property,properties)) {
         forms.push({
           'name': 'profile',
           'label': 'Profiles',
@@ -59,6 +57,19 @@ exports.index = function(req,res) {
       })
     }
   });
+}
+
+function isValidData(choice,dataset) {
+  if (choice) {
+    for(var i = 0; i<dataset.length; i++) {
+      if (dataset[i].id == choice) {
+        return true;
+      }
+    }
+    return false;
+  } else {
+    return true;
+  }
 }
 
 function loadData(req,callback) {

@@ -67,7 +67,8 @@ app.get('/oauth2callback',routes.auth.callback);
 
 app.get('/choose',routes.choose.index);
 
-app.get('/report',routes.report.index);
+app.get('/report',routes.report.form);
+app.post('/report',routes.report.build);
 
 app.listen(config.express.port,function() {
   console.log('Server running.');

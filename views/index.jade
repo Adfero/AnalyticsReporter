@@ -1,7 +1,27 @@
 extends main
 
 block content
-  div(class="jumbotron")
-    h1 Analytics Reporter
-    p
-      a(href="/login",class="btn btn-lg btn-primary") Log In Using Your Google Account
+  h2 Build Your Report
+  form(action="/report")
+    fieldset
+      legend Google Account
+    fieldset
+      legend Sample Range
+        div(class="form-group")
+          label(for="sample-start",class="control-label") Sample Start Date
+          input(class="form-control", name="sample-start",id="sample-start",type="text",placeholder="YYYY-MM-DD")
+        div(class="form-group")
+          label(for="sample-end",class="control-label") Sample End Date
+          input(class="form-control", name="sample-end",id="sample-end",type="text",placeholder="YYYY-MM-DD")
+    fieldset
+      legend Report
+        div(class="form-group")
+          label(for="report-start",class="control-label") Report Start Date
+          input(class="form-control", name="report-start",id="report-start",type="text",placeholder="YYYY-MM-DD")
+        div(class="form-group")
+          label(for="report-end",class="control-label") Report End Date
+          input(class="form-control", name="report-end",id="report-end",type="text",placeholder="YYYY-MM-DD")
+        div(class="form-group")
+          label(for="report-urls",class="control-label") Report URLs
+          textarea(class="form-control",name="report-urls",id="report-urls")
+    input(type="submit",class="btn btn-primary",value="Next") 

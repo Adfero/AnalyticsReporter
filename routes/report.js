@@ -1,11 +1,8 @@
 var googleanalytics = require('../lib/googleanalytics');
 var url = require('url');
+var UrlPattern = require('url-pattern');
 
 exports.form = function(req,res) {
-  // googleanalytics.loadReferrals(req.user.token,req.query.profile,new Date(Date.now() - 2629740000),new Date(),function(err,data) {
-  //   console.log(err);
-  //   res.send(data)
-  // });
   res.render('report',{
     'title': 'Build Your Report'
   })
@@ -19,12 +16,11 @@ exports.build = function(req,res,next) {
   var urls = req.body['report-urls'].split('\n').map(function(urlStr) {
     return url.parse(urlStr).path;
   });
-  googleanalytics.getSocialPostsPerPath(req.user.token,req.query.profile,sampleStart,sampleEnd,['/insights/2015/08/an-event-apart-2015'],function(err,data) {
-    console.log(data);
-  })
-  //token,profile,startDate,endDate,path,metrics,dimensions,callback
-  buildAverages(req.user.token,req.query.profile,sampleStart,sampleEnd,function(err,averageHits) {
-    buildReportActuals(req.user.token,req.query.profile,reportStart,reportEnd,urls,function(err,actuals) {
+  // googleanalytics.getSocialPostsPerPath(req.session.auth.google,req.body['google-profile'],sampleStart,sampleEnd,['/insights/2015/08/an-event-apart-2015'],function(err,data) {
+  //   console.log(data);
+  // })
+  buildAverages(req.session.auth.google,req.body['google-profile'],sampleStart,sampleEnd,req.body['path-pattern'],function(err,averageHits) {
+    buildReportActuals(req.session.auth.google,req.body['google-profile'],reportStart,reportEnd,urls,function(err,actuals) {
       actuals.forEach(function(actual) {
         actual.hitsScore = actual.hits / averageHits;
         return actual;
@@ -34,15 +30,23 @@ exports.build = function(req,res,next) {
   })
 }
 
-function buildAverages(token,profile,sampleStart,sampleEnd,callback) {
+function buildAverages(token,profile,sampleStart,sampleEnd,pattern,callback) {
+  if (!pattern || (pattern && pattern.trim().length == 0)) {
+    pattern = false;
+  } else {
+    pattern = new UrlPattern(pattern);
+  }
   googleanalytics.getHitsPerPath(token,profile,sampleStart,sampleEnd,null,function(err,data) {
     if (err) {
       console.error(err);
       next(err);
     } else {
+      var validUrls = data.rows.reduce(function(previous,current) {
+        return previous + ((!pattern || pattern.match(current[0])) ? 1 : 0);
+      },0)
       var average = data.rows.reduce(function(previous,current) {
-        return previous + parseFloat(current[1]);
-      },0.0) / parseFloat(data.rows.length);
+        return previous + ((!pattern || pattern.match(current[0])) ? parseFloat(current[1]) : 0);
+      },0.0) / parseFloat(validUrls);
       callback(null,average);
     }
   })

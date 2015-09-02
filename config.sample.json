@@ -8,8 +8,5 @@
     "key": "",
     "secret": "",
     "callback_root": "http://localhost:8000"
-  },
-  "mongo": {
-    "connection_string": "mongodb://localhost/ar"
   }
 }

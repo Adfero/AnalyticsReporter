@@ -1,6 +1,7 @@
 module.exports = function(grunt) {
     var uglify_files = {
         'public/build/main.js': [
+            'public-dev/js/vendor/*',
             'public-dev/js/main.js'
         ],
     };

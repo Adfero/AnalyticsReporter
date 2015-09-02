@@ -1,7 +1,18 @@
+@import 'vendor/bootstrap-datepicker.standalone.css';
+
 #main {
   padding-top: 75px;
 }
 
 .jumbotron {
   text-align: center
+}
+
+#google-analytics-account {
+  .form-group {
+    margin-right: 1em;
+    label {
+      margin-right: 0.25em;
+    }
+  }
 }

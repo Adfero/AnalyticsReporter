@@ -1,18 +1,5 @@
 var config = require('../config.json');
 var OAuth = require('oauth');
-// var passport = require('passport');
-
-// exports.request = passport.authenticate('google', { scope: [
-//   'https://www.googleapis.com/auth/plus.login',
-//   'https://www.googleapis.com/auth/analytics.readonly'
-// ]});
-
-// exports.callback = [
-//   passport.authenticate('google', { failureRedirect: '/' }),
-//   function(req, res) {
-//     res.redirect('/choose');
-//   }
-// ]
 
 var googleCallback = config.google.callback_root+"/auth/google/oauth2callback";
 var oauth2 = new OAuth.OAuth2(
@@ -36,7 +23,7 @@ exports.startGoogleAuth = function(req,res) {
   res.redirect(authURL);
 }
 
-exports.finishGoogleAuth = function(req,res) {
+exports.finishGoogleAuth = function(req,res,next) {
   var code = req.query.code;
   oauth2.getOAuthAccessToken(
     code,
@@ -45,7 +32,14 @@ exports.finishGoogleAuth = function(req,res) {
       'redirect_uri': googleCallback
     },
     function(err, accessToken, refreshToken, params) {
-      console.log(err,accessToken);
+      if (err) {
+        next(err);
+      } else {
+        req.session.auth = {
+          'google': accessToken
+        }
+        res.redirect('/');
+      }
     }
   );
 }

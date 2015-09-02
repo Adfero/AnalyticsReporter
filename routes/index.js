@@ -1,4 +1,4 @@
 exports.public = require('./public');
 exports.auth = require('./auth');
-exports.choose = require('./choose');
+exports.ajax = require('./ajax');
 exports.report = require('./report');

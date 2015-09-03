@@ -2,6 +2,8 @@ var url = require('url');
 var UrlPattern = require('url-pattern');
 var reporters = require('../reporters').reporters;
 var async = require('async');
+var json2csv = require('json2csv');
+var _ = require('underscore');
 
 exports.form = function(req,res) {
   res.render('report',{
@@ -33,7 +35,7 @@ exports.build = function(req,res,next) {
       function(callback) {
         callback(null, data, {
           'averages': {},
-          'page': {}
+          'pages': {}
         });
       }
     ].concat(
@@ -51,14 +53,36 @@ exports.build = function(req,res,next) {
               return callback(err);
             } else {
               outData.averages[reporter.name] = results.average;
-              outData.page[reporter.name] = results.page;
+              outData.pages[reporter.name] = _.object(
+                results.page.map(function(row) { return row.path }),
+                results.page.map(function(row) { return row.value })
+              );
+              callback(null,inData, outData);
             }
           });
         };
       })
     ),
-    function(err,result) {
-      res.send(result);
+    function(err,inData,outData) {
+      var rows = inData.urls.map(function(url) {
+        return {
+          'path': url,
+          'score': reporters.reduce(function(previous,current) {
+            return previous + ((outData.pages[current.name][url] / outData.averages[current.name]) * current.weight);
+          },0.0) / reporters.length
+        };
+      });
+      json2csv({
+        'data': rows,
+        'fields': ['path','score']
+      },function(err, csv) {
+        if (err) {
+          next(err);
+        } else {
+          res.setHeader('Content-type','text/csv');
+          res.send(csv);
+        }
+      })
     }
   );
 }

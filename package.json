@@ -32,8 +32,10 @@
     "grunt-contrib-uglify": "^0.9.1",
     "grunt-contrib-watch": "^0.6.1",
     "jade": "^1.11.0",
+    "json2csv": "^2.11.0",
     "morgan": "^1.6.1",
     "oauth": "^0.9.13",
+    "underscore": "^1.8.3",
     "url-pattern": "^0.10.0"
   }
 }

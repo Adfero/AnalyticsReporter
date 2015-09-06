@@ -2,7 +2,10 @@ extends main
 
 block content
   h2 Build Your Report
-  form(action="/report",method="post")
+  if (errors)
+    for error in errors
+      div(class="alert alert-danger",role="alert")= error
+  form(action="/",method="post")
     fieldset(id="google-analytics-account")
       legend Google Analytics Account
       if auth.google
@@ -26,19 +29,19 @@ block content
           div(class="form-group")
             label(for="sample-start",class="control-label") Sample Start Date
             div(class="input-group")
-              input(data-provide="datepicker", class="form-control", name="sample-start",id="sample-start",type="text",placeholder="YYYY-MM-DD", value=defaultDates.start)
+              input(data-provide="datepicker", class="form-control", name="sample-start",id="sample-start",type="text",placeholder="YYYY-MM-DD", value=(lastSubmission ? lastSubmission['sample-start'] : defaultDates.start))
               div(class="input-group-addon")
                 span(class="glyphicon glyphicon-th",aria-hidden="true")
         div(class="col-md-6")
           div(class="form-group")
             label(for="sample-end",class="control-label") Sample End Date
             div(class="input-group")
-              input(data-provide="datepicker", class="form-control", name="sample-end",id="sample-end",type="text",placeholder="YYYY-MM-DD", value=defaultDates.end)
+              input(data-provide="datepicker", class="form-control", name="sample-end",id="sample-end",type="text",placeholder="YYYY-MM-DD", value=(lastSubmission ? lastSubmission['sample-end'] : defaultDates.end))
               div(class="input-group-addon")
                 span(class="glyphicon glyphicon-th",aria-hidden="true")
       div(class="form-group")
         label(for="path-pattern",class="control-label") Sample Path Pattern
-        input(type="text", class="form-control", name="path-pattern", id="path-pattern", placeholder="/path/*/like/*/this")
+        input(type="text", class="form-control", name="path-pattern", id="path-pattern", placeholder="/path/*/like/*/this", value=(lastSubmission ? lastSubmission['path-pattern']: ''))
     fieldset
       legend Report
       div(class="row")
@@ -46,17 +49,17 @@ block content
           div(class="form-group")
             label(for="report-start",class="control-label") Report Start Date
             div(class="input-group")
-              input(data-provide="datepicker", class="form-control", name="report-start",id="report-start",type="text",placeholder="YYYY-MM-DD", value=defaultDates.start)
+              input(data-provide="datepicker", class="form-control", name="report-start",id="report-start",type="text",placeholder="YYYY-MM-DD", value=(lastSubmission ? lastSubmission['report-start'] : defaultDates.start))
               div(class="input-group-addon")
                 span(class="glyphicon glyphicon-th",aria-hidden="true")
         div(class="col-md-6")
           div(class="form-group")
             label(for="report-end",class="control-label") Report End Date
             div(class="input-group")
-              input(data-provide="datepicker", class="form-control", name="report-end",id="report-end",type="text",placeholder="YYYY-MM-DD", value=defaultDates.end)
+              input(data-provide="datepicker", class="form-control", name="report-end",id="report-end",type="text",placeholder="YYYY-MM-DD", value=(lastSubmission ? lastSubmission['report-end'] : defaultDates.end))
               div(class="input-group-addon")
                 span(class="glyphicon glyphicon-th",aria-hidden="true")
       div(class="form-group")
         label(for="report-urls",class="control-label") Report URLs
-        textarea(class="form-control",name="report-urls",id="report-urls")
+        textarea(class="form-control",name="report-urls",id="report-urls")= (lastSubmission ? lastSubmission['report-urls']: '')
     input(type="submit",class="btn btn-primary",value="Build Report") 

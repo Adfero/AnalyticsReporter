@@ -25,13 +25,12 @@ app.use(session({
 app.set('view engine', 'jade');
 app.set('views', __dirname + '/views');
 
-app.get('/',routes.public.index);
+app.get('/',routes.report.form);
+app.post('/',routes.report.build);
 app.get('/ajax/google',routes.ajax.google);
 
 app.get('/auth/google',routes.auth.startGoogleAuth);
 app.get('/auth/google/oauth2callback',routes.auth.finishGoogleAuth);
-
-app.post('/report',routes.report.build);
 
 app.listen(config.express.port,function() {
   console.log('Server running.');

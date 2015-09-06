@@ -1,0 +1,13 @@
+extends main
+
+block content
+  h2 Report
+  table(class="table")
+    thead
+      for field in table.fields
+        th= field
+    tbody
+      for row in table.data
+        tr
+          for field in table.fields
+            td= row[field]

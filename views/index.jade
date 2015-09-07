@@ -7,7 +7,7 @@ block content
       div(class="alert alert-danger",role="alert")= error
   form(action="/",method="post")
     fieldset(id="google-analytics-account")
-      legend Google Analytics Account
+      legend Accounts
       if auth.google
         div(class="form-inline")
           div(class="form-group")
@@ -22,6 +22,9 @@ block content
       else
         p
           a(href="/auth/google" class="btn btn-primary") Sign In To Google
+      if !auth.twitter
+        p
+          a(href="/auth/twitter" class="btn btn-primary") Sign In To Twitter
     fieldset
       legend Sample Range
       div(class="row")

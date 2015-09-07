@@ -1,3 +1,4 @@
 exports.reporters = [
-  require('./hits')
+  require('./hits'),
+  require('./twitter')
 ];

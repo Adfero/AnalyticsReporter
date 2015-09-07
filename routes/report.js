@@ -31,6 +31,7 @@ exports.build = function(req,res,next) {
       'token': req.session.auth ? req.session.auth.google : false,
       'profile': req.body['google-profile']
     },
+    'auth': req.session.auth,
     'sampleStart': new Date(req.body['sample-start']),
     'sampleEnd': new Date(req.body['sample-end']),
     'reportStart': new Date(req.body['report-start']),
@@ -106,21 +107,26 @@ exports.build = function(req,res,next) {
         })
       ),
       function(err,inData,outData) {
-        var rows = inData.urls.map(function(url) {
-          return {
-            'path': url,
-            'score': (Math.round((reporters.reduce(function(previous,current) {
-              return previous + ((outData.pages[current.name][url] / outData.averages[current.name]) * current.weight);
-            },0.0) / reporters.length) * 10000) / 100) + '%'
-          };
-        });
-        res.render('report',{
-          'title': 'Report',
-          'table': {
-            'fields': ['path','score'],
-            'data': rows
-          }
-        });
+        if (err) {
+          console.log(err);
+          next(err);
+        } else {
+          var rows = inData.urls.map(function(url) {
+            return {
+              'path': url,
+              'score': (Math.round((reporters.reduce(function(previous,current) {
+                return previous + ((outData.pages[current.name][url] / outData.averages[current.name]) * current.weight);
+              },0.0) / reporters.length) * 10000) / 100) + '%'
+            };
+          });
+          res.render('report',{
+            'title': 'Report',
+            'table': {
+              'fields': ['path','score'],
+              'data': rows
+            }
+          });
+        }
         // json2csv({
         //   'data': rows,
         //   'fields': 

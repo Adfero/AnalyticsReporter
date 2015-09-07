@@ -32,6 +32,9 @@ app.get('/ajax/google',routes.ajax.google);
 app.get('/auth/google',routes.auth.startGoogleAuth);
 app.get('/auth/google/oauth2callback',routes.auth.finishGoogleAuth);
 
+app.get('/auth/twitter',routes.auth.startTwitterAuth);
+app.get('/auth/twitter/callback',routes.auth.finishTwitterAuth);
+
 app.listen(config.express.port,function() {
   console.log('Server running.');
 });

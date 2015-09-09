@@ -1,6 +1,8 @@
 var OAuth = require('oauth');
+var async = require('async');
 var config = require('../config.json');
 var querystring = require('querystring');
+var unshortener = require('unshortener');
 
 var twitterOAuth = new OAuth.OAuth(
   "https://twitter.com/oauth/request_token",
@@ -24,23 +26,23 @@ exports.average = function(data,done) {
       } else {
         var matchedTweets = tweets.filter(function(tweet) {
           if (data.pattern) {
-            if (tweet.entities && tweet.entities.urls) {
-              console.error( tweet.entities.urls);
-              for(var i = 0; i < tweet.entities.urls.length; i++) {
-                if (data.pattern.match(tweet.entities.urls[i].expanded_url)) {
-                  return true;
-                }
+            for(var i = 0; i < tweet.urls.length; i++) {
+              if (data.pattern.match(tweet.urls[i])) {
+                return true;
               }
             }
             return false;
           }
           return true;
         });
-        console.error(matchedTweets);
-        var average = matchedTweets.reduce(function(previous,current) {
-          return previous + current.retweet_count;
-        },0.0) / parseFloat(matchedTweets.length);
-        return done(null,average); 
+        if (matchedTweets.length > 0) {
+          var average = matchedTweets.reduce(function(previous,current) {
+            return previous + current.retweet_count;
+          },0.0) / parseFloat(matchedTweets.length);
+          done(null,average); 
+        } else {
+          done(null,false); 
+        }
       }
     })
   } else {
@@ -54,28 +56,15 @@ exports.page = function(data,done) {
       if (err) {
         return done(err);
       } else {
-        var urls = {};
-        data.urls.forEach(function(url) {
-          urls[url] = 0;
-        });
-        var matchedTweets = tweets.forEach(function(tweet) {
-          if (tweet.entities && tweet.entities.urls) {
-            for(var i = 0; i < tweet.entities.urls.length; i++) {
-              var url = tweet.entities.urls[i].expanded_url;
-              if (data.urls.indexOf(url) >= 0) {
-                urls[url] += tweet.retweet_count;
-              }
-            }
-          }
-          return false;
-        });
-        var output = [];
-        for(var url in urls) {
-          output.push({
+        var output = data.urls.map(function(url) {
+          var totals = tweets.reduce(function(previous,tweet) {
+            return previous + ((tweet.urls && tweet.urls.indexOf(url) >= 0) ? tweet.retweet_count : 0);
+          },0);
+          return {
             'path': url,
-            'value': urls[url]
-          });
-        }
+            'value': totals
+          }
+        });
         return done(null,output);
       }
     })
@@ -87,10 +76,45 @@ exports.page = function(data,done) {
 function getUserTweets(data,start,end,done) {
   var allTweets = [];
   var finish = function() {
-    done(null,allTweets.filter(function(tweet) {
+    var tweets = allTweets.filter(function(tweet) {
       var time = new Date(tweet.created_at);
       return time.getTime() >= start.getTime() && time.getTime() <= end.getTime();
-    }));
+    });
+    async.each(
+      tweets,
+      function(tweet,eachCallback) {
+        if (tweet.entities && tweet.entities.urls) {
+          async.map(
+            tweet.entities.urls,
+            function(url,mapCallback) {
+              unshortener.expand(
+                url.expanded_url,
+                function (err, url) {
+                  if (err) {
+                    mapCallback(err);
+                  } else {
+                    mapCallback(null,url.path)
+                  }
+                }
+              )
+            },
+            function(err,urls) {
+              if (err) {
+                eachCallback(err);
+              } else {
+                tweet.urls = urls;
+                eachCallback();
+              }
+            }
+          );
+        } else {
+          eachCallback();
+        }
+      },
+      function(err) {
+        done(err,tweets);
+      }
+    );
   }
   var doFetch = function(max_id) {
     var params = {

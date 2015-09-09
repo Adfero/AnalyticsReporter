@@ -112,11 +112,19 @@ exports.build = function(req,res,next) {
           next(err);
         } else {
           var rows = inData.urls.map(function(url) {
+            var total = reporters.reduce(function(previous,current) {
+              if (outData.averages[current.name] !== false) {
+                return previous + ((outData.pages[current.name][url] / outData.averages[current.name]) * current.weight);
+              } else {
+                return previous;
+              }
+            },0.0);
+            var number = reporters.reduce(function(previous,current) {
+              return previous + (outData.averages[current.name] !== false ? 1 : 0);
+            },0.0);
             return {
               'path': url,
-              'score': (Math.round((reporters.reduce(function(previous,current) {
-                return previous + ((outData.pages[current.name][url] / outData.averages[current.name]) * current.weight);
-              },0.0) / reporters.length) * 10000) / 100) + '%'
+              'score': (Math.round((total / number) * 10000) / 100) + '%'
             };
           });
           res.render('report',{

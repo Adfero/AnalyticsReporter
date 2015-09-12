@@ -39,7 +39,6 @@ exports.page = function(data,done) {
     data.reportEnd,
     data.urls,
     function(err,gaData) {
-      console.log(JSON.stringify(gaData));
       if (err) {
         return done(err);
       } else {

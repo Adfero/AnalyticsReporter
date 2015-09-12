@@ -1,30 +1,12 @@
 var config = require('../config.json');
-var OAuth = require('oauth');
+var oauth = require('../lib/oauth');
 
-var googleCallback = config.callback_root+"/auth/google/oauth2callback";
-var googleOAuth = new OAuth.OAuth2(
-  config.google.key,
-  config.google.secret, 
-  '', 
-  'https://accounts.google.com/o/oauth2/auth',
-  'https://accounts.google.com/o/oauth2/token', 
-  null);
 
-var twitterCallback = config.callback_root+"/auth/twitter/callback";
-var twitterOAuth = new OAuth.OAuth(
-  "https://twitter.com/oauth/request_token",
-  "https://twitter.com/oauth/access_token", 
-  config.twitter.key,
-  config.twitter.secret, 
-  "1.0",
-  twitterCallback,
-  "HMAC-SHA1"
-);
 
 exports.startGoogleAuth = function(req,res) {
-  var authURL = googleOAuth.getAuthorizeUrl({
+  var authURL = oauth.googleOAuth.getAuthorizeUrl({
     response_type: 'code',
-    redirect_uri: googleCallback,
+    redirect_uri: oauth.googleCallback,
     scope: [
       'https://www.googleapis.com/auth/plus.login',
       'https://www.googleapis.com/auth/analytics.readonly'
@@ -36,11 +18,11 @@ exports.startGoogleAuth = function(req,res) {
 
 exports.finishGoogleAuth = function(req,res,next) {
   var code = req.query.code;
-  googleOAuth.getOAuthAccessToken(
+  oauth.googleOAuth.getOAuthAccessToken(
     code,
     {
       'grant_type': 'authorization_code',
-      'redirect_uri': googleCallback
+      'redirect_uri': oauth.googleCallback
     },
     function(err, accessToken, refreshToken, params) {
       if (err) {
@@ -57,7 +39,7 @@ exports.finishGoogleAuth = function(req,res,next) {
 }
 
 exports.startTwitterAuth = function(req,res,next) {
-  twitterOAuth.getOAuthRequestToken(function(error, oauthToken, oauthTokenSecret, results){
+  oauth.twitterOAuth.getOAuthRequestToken(function(error, oauthToken, oauthTokenSecret, results){
     if (error) {
       delete req.session.auth.twitter;
       next(error);
@@ -75,7 +57,7 @@ exports.startTwitterAuth = function(req,res,next) {
 }
 
 exports.finishTwitterAuth = function(req,res,next) {
-  twitterOAuth.getOAuthAccessToken(
+  oauth.twitterOAuth.getOAuthAccessToken(
     req.query.oauth_token, 
     req.session.secret,
     req.query.oauth_verifier,

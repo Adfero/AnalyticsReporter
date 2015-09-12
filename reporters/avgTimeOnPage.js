@@ -1,13 +1,13 @@
 var googleanalytics = require('../lib/googleanalytics');
 
-exports.name = 'hits';
+exports.name = 'avgTimeOnPage';
 
-exports.label = 'Hits';
+exports.label = 'Average Time On Page';
 
-exports.weight = 1;
+exports.weight = 0.5;
 
 exports.average = function(data,done) {
-  googleanalytics.getHitsPerPath(
+  googleanalytics.getAvgTimePerPath(
     data.google.token,
     data.google.profile,
     data.sampleStart,
@@ -24,7 +24,7 @@ exports.average = function(data,done) {
 }
 
 exports.page = function(data,done) {
-  googleanalytics.getHitsPerPath(
+  googleanalytics.getAvgTimePerPath(
     data.google.token,
     data.google.profile,
     data.reportStart,

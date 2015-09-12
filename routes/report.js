@@ -2,7 +2,6 @@ var url = require('url');
 var UrlPattern = require('url-pattern');
 var reporters = require('../reporters').reporters;
 var async = require('async');
-var json2csv = require('json2csv');
 var _ = require('underscore');
 var utils = require('../lib/utils');
 
@@ -114,7 +113,7 @@ exports.build = function(req,res,next) {
           var rows = inData.urls.map(function(url) {
             var total = reporters.reduce(function(previous,current) {
               if (outData.averages[current.name] !== false) {
-                return previous + ((outData.pages[current.name][url] / outData.averages[current.name]) * current.weight);
+                return previous + ((outData.pages[current.name][url.path] / outData.averages[current.name]) * current.weight);
               } else {
                 return previous;
               }
@@ -122,30 +121,43 @@ exports.build = function(req,res,next) {
             var number = reporters.reduce(function(previous,current) {
               return previous + (outData.averages[current.name] !== false ? 1 : 0);
             },0.0);
-            return {
-              'path': url,
+            var returnData = {
+              'path': url.path,
               'score': (Math.round((total / number) * 10000) / 100) + '%'
             };
+            reporters.forEach(function(reporter) {
+              returnData[reporter.name] = outData.pages[reporter.name][url.path];
+            });
+            return returnData;
           });
           res.render('report',{
             'title': 'Report',
             'table': {
-              'fields': ['path','score'],
+              'fields': [
+                {
+                  'name': 'path',
+                  'label': 'Path'
+                },
+                {
+                  'name': 'score',
+                  'label': 'Score'
+                }
+                ].concat(reporters.map(function(reporter) {
+                  return {
+                    'name': reporter.name,
+                    'label': reporter.label
+                  };
+                })),
               'data': rows
-            }
+            },
+            'benchmark': reporters.map(function(reporter) {
+              return {
+                'label': reporter.label,
+                'value': outData.averages[reporter.name]
+              }
+            })
           });
         }
-        // json2csv({
-        //   'data': rows,
-        //   'fields': 
-        // },function(err, csv) {
-        //   if (err) {
-        //     next(err);
-        //   } else {
-        //     res.setHeader('Content-type','text/csv');
-        //     res.send(csv);
-        //   }
-        // })
       }
     );
   }

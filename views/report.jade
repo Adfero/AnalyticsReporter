@@ -2,12 +2,23 @@ extends main
 
 block content
   h2 Report
+  h3 Performance
   table(class="table")
     thead
       for field in table.fields
-        th= field
+        th= field.label
     tbody
       for row in table.data
         tr
           for field in table.fields
-            td= row[field]
+            td= row[field.name]
+  h3 Benchmarks
+  table(class="table")
+    thead
+      th Metric
+      th Benchmark
+    tbody
+      for row in benchmark
+        tr
+          td= row.label
+          td= row.value

@@ -1,7 +1,7 @@
 var assert = require('assert');
 var url = require('url');
-var google = require('./reporters/hits');
-var twitter = require('./reporters/twitter');
+var google = require('./lib/googleanalytics');
+var twitter = require('./lib/twitter');
 var data = require('./testData.json');
 var UrlPattern = require('url-pattern');
 

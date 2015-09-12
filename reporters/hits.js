@@ -11,19 +11,23 @@ exports.average = function(data,done) {
     data.sampleStart,
     data.sampleEnd,
     null,
-    function(err,data) {
+    function(err,gaData) {
     if (err) {
       return done(err);
     } else {
-      var validUrls = data.rows.reduce(function(previous,current) {
-        return previous + ((!data.pattern || data.pattern.match(current[0])) ? 1 : 0);
-      },0)
-      var average = data.rows.reduce(function(previous,current) {
-        return previous + ((!data.pattern || data.pattern.match(current[0])) ? parseFloat(current[1]) : 0);
-      },0.0) / parseFloat(validUrls);
-      return done(null,average);
+      return exports.calculateAverage(gaData,data,done);
     }
   })
+}
+
+exports.calculateAverage = function(gaData,data,done) {
+  var validUrls = gaData.rows.reduce(function(previous,current) {
+    return previous + ((!data.pattern || data.pattern.match(current[0])) ? 1 : 0);
+  },0)
+  var average = gaData.rows.reduce(function(previous,current) {
+    return previous + ((!data.pattern || data.pattern.match(current[0])) ? parseFloat(current[1]) : 0);
+  },0.0) / parseFloat(validUrls);
+  return done(null,average);
 }
 
 exports.page = function(data,done) {
@@ -33,16 +37,20 @@ exports.page = function(data,done) {
     data.reportStart,
     data.reportEnd,
     data.urls,
-    function(err,data) {
+    function(err,gaData) {
     if (err) {
-      done(err);
+      return done(err);
     } else {
-      done(null,data.rows.map(function(row) {
-        return {
-          'path': row[0],
-          'value': parseFloat(row[1])
-        }
-      }));
+      return exports.calculatePage(gaData,data,done);
     }
   })
+}
+
+exports.calculatePage = function(gaData,data,done) {
+  done(null,gaData.rows.map(function(row) {
+    return {
+      'path': row[0],
+      'value': parseFloat(row[1])
+    }
+  }));
 }

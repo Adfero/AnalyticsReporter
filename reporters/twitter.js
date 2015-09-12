@@ -9,6 +9,7 @@ exports.weight = 1;
 exports.average = function(data,done) {
   if (data.auth.twitter) {
     twitter.getUserTweets(data,data.sampleStart,data.sampleEnd,function(err,tweets) {
+      console.error(JSON.stringify(tweets));
       if (err) {
         return done(err);
       } else {
@@ -25,7 +26,7 @@ exports.calculateAverage = function(tweets,data,done) {
     if (data.pattern) {
       if (tweet.urls) {
         for(var i = 0; i < tweet.urls.length; i++) {
-          if (data.pattern.match(tweet.urls[i])) {
+          if (data.pattern.match(tweet.urls[i].href)) {
             return true;
           }
         }
@@ -61,10 +62,11 @@ exports.page = function(data,done) {
 exports.calculatePage = function(tweets,data,done) {
   var output = data.urls.map(function(url) {
     var totals = tweets.reduce(function(previous,tweet) {
-      return previous + ((tweet.urls && tweet.urls.indexOf(url) >= 0) ? tweet.retweet_count : 0);
+      var fullUrls = tweet.urls ? tweet.urls.map(function(url) { return url.href; }) : [];
+      return previous + ((fullUrls.indexOf(url.href) >= 0) ? tweet.retweet_count : 0);
     },0);
     return {
-      'path': url,
+      'path': url.path,
       'value': totals
     }
   });

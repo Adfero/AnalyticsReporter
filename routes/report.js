@@ -38,7 +38,7 @@ exports.build = function(req,res,next) {
     'reportEnd': new Date(req.body['report-end']),
     'pattern': (!req.body['path-pattern'] || (req.body['path-pattern'] && req.body['path-pattern'].trim().length == 0)) ? false : new UrlPattern(req.body['path-pattern']),
     'urls': req.body['report-urls'].split('\n').map(function(urlStr) {
-      return url.parse(urlStr).path;
+      return url.parse(urlStr);
     })
   }
 
@@ -65,7 +65,7 @@ exports.build = function(req,res,next) {
     errors.push('Please provide at least one report URL.');
   }
   data.urls.forEach(function(url) {
-    if (!url || url.trim() == '') {
+    if (!url || url.href.trim() == '') {
       errors.push('Please provide valid reporting URLs');
     }
   })

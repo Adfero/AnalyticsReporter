@@ -1,11 +1,16 @@
 var assert = require('assert');
+var url = require('url');
 var google = require('./reporters/hits');
 var twitter = require('./reporters/twitter');
 var data = require('./testData.json');
 var UrlPattern = require('url-pattern');
 
+var urls = data.inData.urls.map(function(urlStr) {
+  return url.parse(urlStr);
+})
+
 var inData = {
-  'urls': data.inData.urls
+  'urls': urls
 }
 var inDataPattern = {
   'urls': data.inData.urls,
@@ -45,7 +50,7 @@ describe('Hits', function() {
         assert.equal(err,null);
         assert.equal(pages.length,data.inData.urls.length);
         for(var i = 0; i < data.inData.urls.length; i++) {
-          assert.equal(pages[i].path,data.inData.urls[i]);  
+          assert.equal(pages[i].path,urls[i].path);  
           assert.equal(pages[i].value,data.google.page.expected[i]);
         }
         done();
@@ -87,7 +92,7 @@ describe('Twitter', function() {
         assert.equal(err,null);
         assert.equal(pages.length,data.inData.urls.length);
         for(var i = 0; i < data.inData.urls.length; i++) {
-          assert.equal(pages[i].path,data.inData.urls[i]);  
+          assert.equal(pages[i].path,urls[i].path);  
           assert.equal(pages[i].value,data.tweets.expected.page[i]);
         }
         done();

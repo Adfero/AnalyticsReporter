@@ -22,12 +22,13 @@ exports.average = function(data,done) {
 }
 
 exports.calculateAverage = function(gaData,data,done) {
-  var validUrls = gaData.rows.reduce(function(previous,current) {
-    return previous + ((!data.pattern || data.pattern.match(current[0])) ? 1 : 0);
-  },0)
-  var average = gaData.rows.reduce(function(previous,current) {
-    return previous + ((!data.pattern || data.pattern.match(current[0])) ? parseFloat(current[1]) : 0);
-  },0.0) / parseFloat(validUrls);
+  var validGaData = gaData.rows.filter(function(current) {
+    var url = current[0]+current[1];
+    return !data.pattern || data.pattern.match('http://'+url) || data.pattern.match('https://'+url);
+  })
+  var average = validGaData.reduce(function(previous,current) {
+    return previous + parseFloat(current[2]);
+  },0.0) / parseFloat(validGaData.length);
   return done(null,average);
 }
 
@@ -37,7 +38,9 @@ exports.page = function(data,done) {
     data.google.profile,
     data.reportStart,
     data.reportEnd,
-    data.urls,
+    data.urls.map(function(url) {
+      return url.path;
+    }),
     function(err,gaData) {
       if (err) {
         return done(err);
@@ -49,10 +52,16 @@ exports.page = function(data,done) {
 }
 
 exports.calculatePage = function(gaData,data,done) {
-  done(null,gaData.rows.map(function(row) {
+  var domains = data.urls.map(function(url) {
+    return url.host;
+  })
+  var filteredGaData = gaData.rows.filter(function(row) {
+    return domains.indexOf(row[0]) >= 0;
+  });
+  done(null,filteredGaData.map(function(row) {
     return {
-      'path': row[0],
-      'value': parseFloat(row[1])
+      'path': row[1],
+      'value': parseFloat(row[2])
     }
   }));
 }

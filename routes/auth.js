@@ -1,8 +1,6 @@
 var config = require('../config.json');
 var oauth = require('../lib/oauth');
 
-
-
 exports.startGoogleAuth = function(req,res) {
   var authURL = oauth.googleOAuth.getAuthorizeUrl({
     response_type: 'code',

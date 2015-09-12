@@ -12,12 +12,13 @@ exports.average = function(data,done) {
     data.sampleEnd,
     null,
     function(err,gaData) {
-    if (err) {
-      return done(err);
-    } else {
-      return exports.calculateAverage(gaData,data,done);
+      if (err) {
+        return done(err);
+      } else {
+        return exports.calculateAverage(gaData,data,done);
+      }
     }
-  })
+  )
 }
 
 exports.calculateAverage = function(gaData,data,done) {
@@ -38,12 +39,14 @@ exports.page = function(data,done) {
     data.reportEnd,
     data.urls,
     function(err,gaData) {
-    if (err) {
-      return done(err);
-    } else {
-      return exports.calculatePage(gaData,data,done);
+      console.log(JSON.stringify(gaData));
+      if (err) {
+        return done(err);
+      } else {
+        return exports.calculatePage(gaData,data,done);
+      }
     }
-  })
+  )
 }
 
 exports.calculatePage = function(gaData,data,done) {

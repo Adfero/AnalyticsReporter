@@ -21,8 +21,18 @@ html
             span(class="icon-bar")
             span(class="icon-bar")
             span(class="icon-bar")
-          a(class="navbar-brand",href="/") Analytics Reporter
+          a(class="navbar-brand",href="/") One Metric
+        div(id="navbar",class="collapse navbar-collapse")
+          div(class="navbar-right navbar-form",id="top-right-nav")
+            if user
+              if user.admin
+                a(href="/admin/users", class="btn btn-default") Users
+                |  
+              a(href="/logout", class="btn btn-danger") Logout
     div(class="container",id="main")
+      h2= title
+      if message && message.length
+        div(class="alert alert-danger", role="alert")= message
       block content
     footer(class="container footer")
       p(class="pull-right") Copyright &copy; 2015 Adfero

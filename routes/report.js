@@ -4,20 +4,65 @@ var reporters = require('../reporters').reporters;
 var async = require('async');
 var _ = require('underscore');
 var utils = require('../lib/utils');
+var Report = require('../lib/database').Report;
 
 function renderForm(req,res,errors) {
   var now = new Date();
   var then = new Date(now.getTime() - 2592000000);
-  res.render('index',{
-    'title': 'Analytics Reporter',
-    'auth': req.session ? (req.session.auth ? req.session.auth : {}) : {},
+  res.render('report/form',{
+    'title': req.report.name,
     'defaultDates': {
       'start': utils.formatDate(then),
       'end': utils.formatDate(now)
     },
-    'lastSubmission': req.session.lastSubmission,
-    'errors': errors
+    'report': req.report,
+    'message': req.flash('report')
   });
+}
+
+exports.list = function(req,res,next) {
+  Report
+    .find({
+      '_id': {
+        '$in': req.user.reports
+      }
+    })
+    .sort({created: -1})
+    .exec(function(err,reports) {
+      if (err) {
+        next(err)
+      } else {
+        res.render('report/list',{
+          'title': 'Reports',
+          'reports': reports
+        });
+      }
+    });
+}
+
+exports.newReport = function(req,res,next) {
+  res.render('report/new',{
+    'title': 'New Report'
+  });
+}
+
+exports.saveNewReport = function(req,res,next) {
+  var report = new Report(req.body);
+  report.save(function(err) {
+    if (err) {
+      next(err);
+    } else {
+      req.user.reports.push(report._id+'');
+      req.user.save(function() {
+        if (err) {
+          next(err);
+        } else {
+          req.report = report;
+          renderForm(req,res);
+        }
+      })
+    }
+  })
 }
 
 exports.form = function(req,res) {
@@ -25,24 +70,30 @@ exports.form = function(req,res) {
 }
 
 exports.build = function(req,res,next) {
+  ['sampleStart','sampleEnd','reportStart','reportEnd','pathPattern','reportURLs'].forEach(function(prop) {
+    req.report[prop] = req.body[prop];
+  });
+  req.report.auth.google.account.account = req.body['googleAccount'];
+  req.report.auth.google.account.property = req.body['googleProperty'];
+  req.report.auth.google.account.profile = req.body['googleProfile'];
+  req.report.auth.facebook.page = req.body['facebookPage'];
+
   var data = {
     'google': {
       'token': req.session.auth ? req.session.auth.google : false,
-      'profile': req.body['google-profile']
+      'profile': req.body['googleProfile']
     },
-    'facebookPage': (req.body['facebook-page'] && req.body['facebook-page'].length > 0) ? req.body['facebook-page'] : false,
+    'facebookPage': (req.body['facebookPage'] && req.body['facebookPage'].length > 0) ? req.body['facebookPage'] : false,
     'auth': req.session.auth,
-    'sampleStart': new Date(req.body['sample-start']),
-    'sampleEnd': new Date(req.body['sample-end']),
-    'reportStart': new Date(req.body['report-start']),
-    'reportEnd': new Date(req.body['report-end']),
-    'pattern': (!req.body['path-pattern'] || (req.body['path-pattern'] && req.body['path-pattern'].trim().length == 0)) ? false : new UrlPattern(req.body['path-pattern']),
-    'urls': req.body['report-urls'].split('\n').map(function(urlStr) {
+    'sampleStart': new Date(req.body['sampleStart']),
+    'sampleEnd': new Date(req.body['sampleEnd']),
+    'reportStart': new Date(req.body['reportStart']),
+    'reportEnd': new Date(req.body['reportEnd']),
+    'pattern': (!req.body['pathPattern'] || (req.body['pathPattern'] && req.body['pathPattern'].trim().length == 0)) ? false : new UrlPattern(req.body['pathPattern']),
+    'urls': req.body['reportURLs'].split('\n').map(function(urlStr) {
       return url.parse(urlStr);
     })
   }
-
-  req.session.lastSubmission = req.body;
 
   var errors = [];
 
@@ -131,7 +182,7 @@ exports.build = function(req,res,next) {
             });
             return returnData;
           });
-          res.render('report',{
+          res.render('report/view',{
             'title': 'Report',
             'table': {
               'fields': [

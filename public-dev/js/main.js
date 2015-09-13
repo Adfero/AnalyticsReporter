@@ -1,20 +1,23 @@
 (function($) {
   $.fn.datepicker.defaults.format = "yyyy-mm-dd";
+  var reportId;
 
   $(document).ready(function() {
-    if ($('#google-analytics-account').length > 0) {
-      reloadGoogleDropdownData([],['google-account']);
+    var $form = $('.report-form');
+    if ($form.length > 0) {
+      reportId = $form.attr('data-report-id');
+      reloadGoogleDropdownData([],['googleAccount']);
       initGoogleAnalyticsDropdowns();
       iniFacebookDropdown();
     }
   });
 
   function initGoogleAnalyticsDropdowns() {
-    $('#google-account').change(function(req,res) {
-      reloadGoogleDropdownData(['google-account'],['google-property'])
+    $('#googleAccount').change(function(req,res) {
+      reloadGoogleDropdownData(['googleAccount'],['googleProperty'])
     });
-    $('#google-property').change(function(req,res) {
-      reloadGoogleDropdownData(['google-account','google-property'],['google-profile'])
+    $('#googleProperty').change(function(req,res) {
+      reloadGoogleDropdownData(['googleAccount','googleProperty'],['googleProfile'])
     });
   }
 
@@ -23,7 +26,7 @@
     $.each(sendFields,function(i,fieldname) {
       data[fieldname] = $('#' + fieldname).val();
     });
-    $.ajax('/ajax/google',{
+    $.ajax('/report/' + reportId + '/ajax/google',{
       'data': data,
       'success': function(data) {
         if (data) {
@@ -53,10 +56,10 @@
   }
 
   function iniFacebookDropdown() {
-    $.ajax('/ajax/facebook',{
+    $.ajax('/report/' + reportId + '/ajax/facebook',{
       'success': function(data) {
         if (data) {
-          var $select = $('#facebook-page');
+          var $select = $('#facebookPage');
           $.each(data,function(i,field) {
             var $option = $('<option></option>');
             $option.prop('value',field.id);

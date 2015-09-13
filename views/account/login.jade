@@ -1,0 +1,12 @@
+extends ../main
+
+block content
+  div(class="well")
+    form(method="post")
+      div(class="form-group")
+        label(for="email") Email Address
+        input(class="form-control input-lg", type="email", name="email", id="email", placeholder="john@example.com")
+      div(class="form-group")
+        label(for="password") Password
+        input(class="form-control input-lg", type="password", name="password", id="password")
+      button(type="submit", class="btn btn-primary") Log In

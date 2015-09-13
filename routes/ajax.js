@@ -3,18 +3,18 @@ var googleanalytics = require('../lib/googleanalytics');
 var facebook = require('../lib/facebook');
 
 exports.google = function(req,res) {
-  if (req.session && req.session.auth && req.session.auth.google) {
+  if (req.report.auth.google.token) {
     loadData(req,function(error,accounts,properties,profiles) {
       if (error) {
         console.error(error);
       }
       var forms = {
-        'google-account': [],
-        'google-property': [],
-        'google-profile': []
+        'googleAccount': [],
+        'googleProperty': [],
+        'googleProfile': []
       };
       if (accounts) {
-        forms['google-account'] = accounts.map(function(account) {
+        forms['googleAccount'] = accounts.map(function(account) {
           return {
             'value': account.id,
             'name': account.name
@@ -22,7 +22,7 @@ exports.google = function(req,res) {
         });
       }
       if (properties) {
-        forms['google-property'] = properties.map(function(property) {
+        forms['googleProperty'] = properties.map(function(property) {
           return {
             'value': property.id,
             'name': property.name
@@ -30,7 +30,7 @@ exports.google = function(req,res) {
         });
       }
       if (profiles) {
-        forms['google-profile'] = profiles.map(function(profile) {
+        forms['googleProfile'] = profiles.map(function(profile) {
           return {
             'value': profile.id,
             'name': profile.name
@@ -45,8 +45,8 @@ exports.google = function(req,res) {
 }
 
 exports.facebook = function(req,res,next) {
-  if (req.session && req.session.auth && req.session.auth.facebook) {
-    facebook.getPages(req.session.auth.facebook,function(err,pages) {
+  if (req.report.auth.facebook.token) {
+    facebook.getPages(req.report.auth.facebook.token,function(err,pages) {
       if (err) {
         next(err);
       } else {
@@ -59,15 +59,15 @@ exports.facebook = function(req,res,next) {
 }
 
 function loadData(req,callback) {
-  googleanalytics.loadAccounts(req.session.auth.google,function(err,accounts) {
+  googleanalytics.loadAccounts(req.report.auth.google.token,function(err,accounts) {
     if (err) {
       callback(err);
-    } else if (req.query['google-account']) {
-      googleanalytics.loadProperties(req.session.auth.google,req.query['google-account'],function(err,properties) {
+    } else if (req.query['googleAccount']) {
+      googleanalytics.loadProperties(req.report.auth.google.token,req.query['googleAccount'],function(err,properties) {
         if (err) {
           callback(err);
-        } else if (req.query['google-property']) {
-          googleanalytics.loadProfiles(req.session.auth.google,req.query['google-account'],req.query['google-property'],function(err,profiles) {
+        } else if (req.query['googleProperty']) {
+          googleanalytics.loadProfiles(req.report.auth.google.token,req.query['googleAccount'],req.query['googleProperty'],function(err,profiles) {
             if (err) {
               callback(err);
             } else {

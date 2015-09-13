@@ -1,110 +1,40 @@
-var config = require('../config.json');
-var oauth = require('../lib/oauth');
+var passport = require('passport')
+var LocalStrategy = require('passport-local').Strategy;
+var User = require('../lib/database').User;
 
-exports.startGoogleAuth = function(req,res) {
-  var authURL = oauth.googleOAuth.getAuthorizeUrl({
-    response_type: 'code',
-    redirect_uri: oauth.googleCallback,
-    scope: [
-      'https://www.googleapis.com/auth/plus.login',
-      'https://www.googleapis.com/auth/analytics.readonly'
-    ].join(' '),
-    state: 'some random string to protect against cross-site request forgery attacks'
-  });
-  res.redirect(authURL);
-}
-
-exports.finishGoogleAuth = function(req,res,next) {
-  var code = req.query.code;
-  oauth.googleOAuth.getOAuthAccessToken(
-    code,
-    {
-      'grant_type': 'authorization_code',
-      'redirect_uri': oauth.googleCallback
-    },
-    function(err, accessToken, refreshToken, params) {
-      if (err) {
-        next(err);
-      } else {
-        if (!req.session.auth) {
-          req.session.auth = {};
-        }
-        req.session.auth.google = accessToken;
-        res.redirect('/');
+passport.use(new LocalStrategy(
+  {
+    usernameField: 'email',
+    passwordField: 'password'
+  },
+  function(username, password, done) {
+    User.findOne({ email: username }, function(err, user) {
+      if (err) { return done(err); }
+      if (!user) {
+        return done(null, false, { message: 'Incorrect username.' });
       }
-    }
-  );
-}
-
-exports.startTwitterAuth = function(req,res,next) {
-  oauth.twitterOAuth.getOAuthRequestToken(function(error, oauthToken, oauthTokenSecret, results){
-    if (error) {
-      delete req.session.auth.twitter;
-      next(error);
-    } else {  
-      if (!req.session.auth) {
-        req.session.auth = {};
+      if (!user.validPassword(password)) {
+        return done(null, false, { message: 'Incorrect password.' });
       }
-      req.session.auth.twitter = {
-        'token': oauthToken,
-        'secret': oauthTokenSecret
+      if (!user.active) {
+        return done(null, false, { message: 'Account disabled.' });
       }
-      res.redirect("https://twitter.com/oauth/authorize?oauth_token="+req.session.auth.twitter.token);      
-    }
-  });
-}
+      return done(null, user);
+    });
+  }
+));
 
-exports.finishTwitterAuth = function(req,res,next) {
-  oauth.twitterOAuth.getOAuthAccessToken(
-    req.query.oauth_token, 
-    req.session.secret,
-    req.query.oauth_verifier,
-    function(error, oauthAccessToken, oauthAccessTokenSecret, results) {
-      if (error) {
-        delete req.session.auth.twitter;
-        next(error);
-      } else {
-        req.session.auth.twitter = {
-          'token': oauthAccessToken,
-          'secret': oauthAccessTokenSecret
-        }
-        res.redirect('/');
-      }
-    }
-  );
-}
+exports.login = [
+  function(req,res) {
+    res.render('account/login',{
+      'title': 'Login',
+      'message': req.flash('failureFlash')
+    });
+  }
+]
 
-exports.startFacebookAuth = function(req,res,next) {
-  var authURL = oauth.facebookOAuth.getAuthorizeUrl({
-    response_type: 'code',
-    redirect_uri: oauth.facebookCallback,
-    scope: [
-      'read_insights'
-    ].join(','),
-    state: 'some random string to protect against cross-site request forgery attacks'
-  });
-  res.redirect(authURL);
-}
-
-exports.finishFacebookAuth = function(req,res,next) {
-  var code = req.query.code;
-  oauth.facebookOAuth.getOAuthAccessToken(
-    code,
-    {
-      'grant_type': 'authorization_code',
-      'redirect_uri': oauth.facebookCallback
-    },
-    function(err, accessToken, refreshToken, params) {
-      if (err) {
-        next(err);
-      } else {
-        if (!req.session.auth) {
-          req.session.auth = {};
-        }
-        req.session.auth.facebook = accessToken;
-        console.warn(req.session.auth);
-        res.redirect('/');
-      }
-    }
-  );
-}
+exports.doLogin = passport.authenticate('local', { 
+  successRedirect: '/',
+  failureRedirect: '/login',
+  failureFlash: true
+});

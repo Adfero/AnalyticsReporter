@@ -1,14 +1,14 @@
 {
-  "name": "AnalyticsReporter",
+  "name": "One-Metric",
   "version": "1.0.0",
-  "description": "Generates ad-hoc analytics reports",
+  "description": "Generates one-metric style content performance reports.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha test"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/AdferoInteractive/AnalyticsReporter.git"
+    "url": "https://github.com/AdferoInteractive/One-Metric.git"
   },
   "contributors": [
     "jjones@adfero.com",
@@ -16,9 +16,9 @@
   ],
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/AdferoInteractive/AnalyticsReporter/issues"
+    "url": "https://github.com/AdferoInteractive/One-Metric/issues"
   },
-  "homepage": "https://github.com/AdferoInteractive/AnalyticsReporter",
+  "homepage": "https://github.com/AdferoInteractive/One-Metric",
   "dependencies": {
     "async": "^1.4.2",
     "body-parser": "^1.13.2",

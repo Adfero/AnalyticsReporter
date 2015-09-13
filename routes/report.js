@@ -30,6 +30,7 @@ exports.build = function(req,res,next) {
       'token': req.session.auth ? req.session.auth.google : false,
       'profile': req.body['google-profile']
     },
+    'facebookPage': (req.body['facebook-page'] && req.body['facebook-page'].length > 0) ? req.body['facebook-page'] : false,
     'auth': req.session.auth,
     'sampleStart': new Date(req.body['sample-start']),
     'sampleEnd': new Date(req.body['sample-end']),
@@ -153,7 +154,8 @@ exports.build = function(req,res,next) {
             'benchmark': reporters.map(function(reporter) {
               return {
                 'label': reporter.label,
-                'value': outData.averages[reporter.name]
+                'value': outData.averages[reporter.name],
+                'weight': reporter.weight
               }
             })
           });

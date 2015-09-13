@@ -4,7 +4,7 @@ exports.name = 'hits';
 
 exports.label = 'Hits';
 
-exports.weight = 1;
+exports.weight = 2;
 
 exports.average = function(data,done) {
   googleanalytics.getHitsPerPath(
@@ -41,3 +41,7 @@ exports.page = function(data,done) {
     }
   )
 }
+
+exports.calculateAverage = googleanalytics.calculateAverage
+
+exports.calculatePage = googleanalytics.calculatePage

@@ -1,5 +1,6 @@
 var querystring = require('querystring');
 var googleanalytics = require('../lib/googleanalytics');
+var facebook = require('../lib/facebook');
 
 exports.google = function(req,res) {
   if (req.session && req.session.auth && req.session.auth.google) {
@@ -37,6 +38,20 @@ exports.google = function(req,res) {
         });
       }
       res.send(forms);
+    });
+  } else {
+    res.send(401);
+  }
+}
+
+exports.facebook = function(req,res,next) {
+  if (req.session && req.session.auth && req.session.auth.facebook) {
+    facebook.getPages(req.session.auth.facebook,function(err,pages) {
+      if (err) {
+        next(err);
+      } else {
+        res.send(pages);
+      }
     });
   } else {
     res.send(401);

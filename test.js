@@ -1,7 +1,9 @@
 var assert = require('assert');
 var url = require('url');
-var google = require('./lib/googleanalytics');
-var twitter = require('./lib/twitter');
+var hits = require('./reporters/hits');
+var retweets = require('./reporters/retweets');
+var likes = require('./reporters/likes');
+var shares = require('./reporters/shares');
 var data = require('./testData.json');
 var UrlPattern = require('url-pattern');
 
@@ -17,41 +19,41 @@ var inDataPattern = {
   'pattern': new UrlPattern(data.inData.pattern)
 }
 
-describe('Hits', function() {
+describe('Google', function() {
   it('Calculates average page hits', function(done) {
-    google.calculateAverage(
-      data.google.average.data,
+    hits.calculateAverage(
+      data.hits.average.data,
       inData,
       function(err,average) {
         assert.equal(err,null);
-        assert.equal(average,data.google.average.expected.standard);
+        assert.equal(average,data.hits.average.expected.standard);
         done();
       }
     )
   });
 
   it('Calculates average page hits with pattern', function(done) {
-    google.calculateAverage(
-      data.google.average.data,
+    hits.calculateAverage(
+      data.hits.average.data,
       inDataPattern,
       function(err,average) {
         assert.equal(err,null);
-        assert.equal(average,data.google.average.expected.pattern);
+        assert.equal(average,data.hits.average.expected.pattern);
         done();
       }
     )
   });
 
   it('Calculates single page hits', function(done) {
-    google.calculatePage(
-      data.google.page.data,
+    hits.calculatePage(
+      data.hits.page.data,
       inData,
       function(err,pages) {
         assert.equal(err,null);
         assert.equal(pages.length,data.inData.urls.length);
         for(var i = 0; i < data.inData.urls.length; i++) {
           assert.equal(pages[i].path,urls[i].path);  
-          assert.equal(pages[i].value,data.google.page.expected[i]);
+          assert.equal(pages[i].value,data.hits.page.expected[i]);
         }
         done();
       }
@@ -61,7 +63,7 @@ describe('Hits', function() {
 
 describe('Twitter', function() {
   it('Calculates average retweets', function(done) {
-    twitter.calculateAverage(
+    retweets.calculateAverage(
       data.tweets.data,
       inData,
       function(err,average) {
@@ -73,7 +75,7 @@ describe('Twitter', function() {
   });
 
   it('Calculates average retweets with pattern', function(done) {
-    twitter.calculateAverage(
+    retweets.calculateAverage(
       data.tweets.data,
       inDataPattern,
       function(err,average) {
@@ -85,7 +87,7 @@ describe('Twitter', function() {
   });
 
   it('Calculates single page retweets', function(done) {
-    twitter.calculatePage(
+    retweets.calculatePage(
       data.tweets.data,
       inData,
       function(err,pages) {
@@ -94,6 +96,88 @@ describe('Twitter', function() {
         for(var i = 0; i < data.inData.urls.length; i++) {
           assert.equal(pages[i].path,urls[i].path);  
           assert.equal(pages[i].value,data.tweets.expected.page[i]);
+        }
+        done();
+      }
+    )
+  });
+});
+
+describe('Facebook', function() {
+  it('Calculates average likes', function(done) {
+    likes.calculateAverage(
+      data.facebook.data,
+      inData,
+      function(err,average) {
+        assert.equal(err,null);
+        assert.equal(average,data.facebook.expected.likes.average.standard);
+        done();
+      }
+    )
+  });
+
+  it('Calculates average likes with pattern', function(done) {
+    likes.calculateAverage(
+      data.facebook.data,
+      inDataPattern,
+      function(err,average) {
+        assert.equal(err,null);
+        assert.equal(average,data.facebook.expected.likes.average.pattern);
+        done();
+      }
+    )
+  });
+
+  it('Calculates single page likes', function(done) {
+    likes.calculatePage(
+      data.facebook.data,
+      inData,
+      function(err,pages) {
+        assert.equal(err,null);
+        assert.equal(pages.length,data.inData.urls.length);
+        for(var i = 0; i < data.inData.urls.length; i++) {
+          assert.equal(pages[i].path,urls[i].path);  
+          assert.equal(pages[i].value,data.facebook.expected.likes.page[i]);
+        }
+        done();
+      }
+    )
+  });
+
+  it('Calculates average shares', function(done) {
+    shares.calculateAverage(
+      data.facebook.data,
+      inData,
+      function(err,average) {
+        assert.equal(err,null);
+        assert.equal(average,data.facebook.expected.shares.average.standard);
+        done();
+      }
+    )
+  });
+
+  it('Calculates average shares with pattern', function(done) {
+    shares.calculateAverage(
+      data.facebook.data,
+      inDataPattern,
+      function(err,average) {
+        assert.equal(err,null);
+        assert.equal(average,data.facebook.expected.shares.average.pattern);
+        done();
+      }
+    )
+  });
+
+  it('Calculates single page shares', function(done) {
+    shares.calculatePage(
+      data.facebook.data,
+      inData,
+      function(err,pages) {
+        assert.equal(err,null);
+        assert.equal(pages.length,data.inData.urls.length);
+        for(var i = 0; i < data.inData.urls.length; i++) {
+          assert.equal(pages[i].path,urls[i].path);  
+          assert.equal(pages[i].value,data.facebook.expected.shares.page[i]);
         }
         done();
       }

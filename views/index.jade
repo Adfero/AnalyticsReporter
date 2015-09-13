@@ -25,6 +25,13 @@ block content
       if !auth.twitter
         p
           a(href="/auth/twitter" class="btn btn-primary") Sign In To Twitter
+      if auth.facebook
+        div(class="form-group")
+          label(for="facebook-page") Facebook Page
+          select(name="facebook-page",id="facebook-page",class="form-control")
+      else
+        p
+          a(href="/auth/facebook" class="btn btn-primary") Sign In To Facebook
     fieldset
       legend Sample Range
       div(class="row")

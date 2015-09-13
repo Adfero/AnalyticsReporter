@@ -5,6 +5,7 @@
     if ($('#google-analytics-account').length > 0) {
       reloadGoogleDropdownData([],['google-account']);
       initGoogleAnalyticsDropdowns();
+      iniFacebookDropdown();
     }
   });
 
@@ -49,5 +50,21 @@
         done && done();
       }
     })
+  }
+
+  function iniFacebookDropdown() {
+    $.ajax('/ajax/facebook',{
+      'success': function(data) {
+        if (data) {
+          var $select = $('#facebook-page');
+          $.each(data,function(i,field) {
+            var $option = $('<option></option>');
+            $option.prop('value',field.id);
+            $option.html(field.name);
+            $select.append($option);
+          });
+        }
+      }
+    });
   }
 })(jQuery);

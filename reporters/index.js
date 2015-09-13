@@ -1,5 +1,7 @@
 exports.reporters = [
   require('./hits'),
   require('./avgTimeOnPage'),
-  require('./twitter')
+  require('./retweets'),
+  require('./likes'),
+  require('./shares')
 ];

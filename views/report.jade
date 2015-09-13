@@ -17,8 +17,10 @@ block content
     thead
       th Metric
       th Benchmark
+      th Weight
     tbody
       for row in benchmark
         tr
           td= row.label
           td= row.value
+          td= row.weight

@@ -4,7 +4,7 @@ exports.name = 'avgTimeOnPage';
 
 exports.label = 'Average Time On Page';
 
-exports.weight = 0.5;
+exports.weight = 1;
 
 exports.average = function(data,done) {
   googleanalytics.getAvgTimePerPath(

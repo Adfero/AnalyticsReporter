@@ -4,9 +4,20 @@
     "session_key": "",
     "port": 8000
   },
+  "callback_root": "http://localhost:8000",
   "google": {
     "key": "",
-    "secret": "",
-    "callback_root": "http://localhost:8000"
+    "secret": ""
+  },
+  "twitter": {
+    "key": "",
+    "secret": ""
+  },
+  "facebook": {
+    "key": "",
+    "secret": ""
+  },
+  "mongo": {
+    "connection_string": ""
   }
 }

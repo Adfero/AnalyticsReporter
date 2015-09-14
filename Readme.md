@@ -12,5 +12,6 @@ cd One-Metric
 cp config.sample.json config.json
 vim config.json
 npm install
+grunt dist
 node index
 ```

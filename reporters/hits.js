@@ -8,8 +8,8 @@ exports.weight = 2;
 
 exports.average = function(data,done) {
   googleanalytics.getHitsPerPath(
-    data.google.token,
-    data.google.profile,
+    data.auth.google.token,
+    data.auth.google.account.profile,
     data.sampleStart,
     data.sampleEnd,
     null,
@@ -25,8 +25,8 @@ exports.average = function(data,done) {
 
 exports.page = function(data,done) {
   googleanalytics.getHitsPerPath(
-    data.google.token,
-    data.google.profile,
+    data.auth.google.token,
+    data.auth.google.account.profile,
     data.reportStart,
     data.reportEnd,
     data.urls.map(function(url) {

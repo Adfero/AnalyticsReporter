@@ -93,11 +93,14 @@ app.get('/report/:id',goToLogin,reportCheck,routes.report.form);
 app.post('/report/:id',goToLogin,reportCheck,routes.report.build);
 
 app.get('/report/:id/auth/google',goToLogin,reportCheck,routes.reportAuth.startGoogle);
-app.get('/report/:id/auth/google/callback',goToLogin,reportCheck,routes.reportAuth.finishGoogle);
+app.get('/report/auth/google/callback',goToLogin,routes.reportAuth.finishGoogle);
+app.get('/report/:id/auth/google/deauth',goToLogin,reportCheck,routes.reportAuth.deauthGoogle);
 app.get('/report/:id/auth/twitter',goToLogin,reportCheck,routes.reportAuth.startTwitter);
 app.get('/report/:id/auth/twitter/callback',goToLogin,reportCheck,routes.reportAuth.finishTwitter);
+app.get('/report/:id/auth/twitter/deauth',goToLogin,reportCheck,routes.reportAuth.deauthTwitter);
 app.get('/report/:id/auth/facebook',goToLogin,reportCheck,routes.reportAuth.startFacebook);
 app.get('/report/:id/auth/facebook/callback',goToLogin,reportCheck,routes.reportAuth.finishFacebook);
+app.get('/report/:id/auth/facebook/deauth',goToLogin,reportCheck,routes.reportAuth.deauthFacebook);
 
 app.get('/report/:id/ajax/google',goToLogin,reportCheck,routes.ajax.google);
 app.get('/report/:id/ajax/facebook',goToLogin,reportCheck,routes.ajax.facebook);

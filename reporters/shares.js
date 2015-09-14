@@ -22,7 +22,7 @@ exports.calculateAverage = function(posts,data,done) {
     },0.0) / parseFloat(matchedPosts.length);
     done(null,average); 
   } else {
-    done(null,false); 
+    done(null,0); 
   }
 }
 

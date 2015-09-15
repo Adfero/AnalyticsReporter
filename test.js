@@ -4,7 +4,7 @@ var hits = require('./reporters/hits');
 var retweets = require('./reporters/retweets');
 var likes = require('./reporters/likes');
 var shares = require('./reporters/shares');
-var data = require('./testData.json');
+var data = require(process.env.TEST_DATA);
 var UrlPattern = require('url-pattern');
 
 var urls = data.inData.urls.map(function(urlStr) {

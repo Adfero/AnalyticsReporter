@@ -11,6 +11,7 @@ var User = require('./lib/database').User;
 var flash = require('connect-flash');
 var login = require('connect-ensure-login');
 var Report = require('./lib/database').Report;
+var googleanalytics = require('./lib/googleanalytics');
 
 var app = express();
 app.use(logger('combined'));
@@ -73,7 +74,27 @@ function reportCheck(req,res,next) {
     } else if (report) {
       if (req.user.reports.indexOf(report._id+'') >= 0) {
         req.report = report;
-        next();
+        if (req.report.auth.google.expires && req.report.auth.google.expires.getTime() < (new Date()).getTime()) {
+          googleanalytics.refresh(req.report.auth.google.refresh,function(err,token,refresh,expires) {
+            if (err) {
+              req.report.auth.google.token = null;
+              req.report.auth.google.refresh = null;
+              req.report.auth.google.expires = null;
+            } else {
+              req.report.auth.google.token = token;
+              req.report.auth.google.refresh = refresh;
+              req.report.auth.google.expires = expires;
+            }
+            req.report.save(function(err) {
+              if (err) {
+                console.error(err);
+              }
+              next();
+            });
+          });
+        } else {
+          next();
+        }
       } else {
         res.send(401);
       }

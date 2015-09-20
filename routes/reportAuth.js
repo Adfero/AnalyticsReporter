@@ -21,13 +21,15 @@ function wrapCallback(req,res,next) {
 
 exports.startGoogle = function(req,res) {
   var authURL = oauth.googleOAuth().getAuthorizeUrl({
-    response_type: 'code',
-    redirect_uri: googleCallback,
-    scope: [
+    'response_type': 'code',
+    'redirect_uri': googleCallback,
+    'scope': [
       'https://www.googleapis.com/auth/plus.login',
       'https://www.googleapis.com/auth/analytics.readonly'
     ].join(' '),
-    state: req.report._id+''
+    'state': req.report._id+'',
+    'access_type': 'offline',
+    'approval_prompt': 'force'
   });
   res.redirect(authURL);
 }
@@ -37,10 +39,11 @@ exports.finishGoogle = function(req,res,next) {
     Report.findById(req.query.state,function(err,report) {
       if (err) {
         next(err);
-      } else if (report) {
+      } else if (report && req.user.reports.indexOf(report._id+'') >= 0) {
         if (req.user.reports.indexOf(report._id+'') >= 0) {
           req.report = report;
           var code = req.query.code;
+          var now = new Date().getTime();
           oauth.googleOAuth().getOAuthAccessToken(
             code,
             {
@@ -53,6 +56,7 @@ exports.finishGoogle = function(req,res,next) {
               } else {
                 req.report.auth.google.token = accessToken;
                 req.report.auth.google.refresh = refreshToken;
+                req.report.auth.google.expires = new Date(now + (params['expires_in'] * 1000));
                 wrapCallback(req,res,next);
               }
             }
@@ -61,7 +65,7 @@ exports.finishGoogle = function(req,res,next) {
           res.send(401);
         }
       } else {
-        next(new Error('Report not found'));
+        next(new Error('Report not found or not valid'));
       }
     })
   } else {
@@ -104,12 +108,14 @@ exports.finishTwitter = function(req,res,next) {
 
 exports.startFacebook = function(req,res,next) {
   var authURL = oauth.facebookOAuth().getAuthorizeUrl({
-    response_type: 'code',
-    redirect_uri: makeCallback(req,'facebook'),
-    scope: [
+    'response_type': 'code',
+    'redirect_uri': makeCallback(req,'facebook'),
+    'scope': [
       'read_insights'
     ].join(','),
-    state: 'some random string to protect against cross-site request forgery attacks'
+    'state': 'some random string to protect against cross-site request forgery attacks',
+    'access_type': 'offline',
+    'approval_prompt': 'force'
   });
   res.redirect(authURL);
 }
@@ -148,6 +154,7 @@ function deauth(req,res,next,network) {
 exports.deauthGoogle = function(req,res,next) {
   req.report.auth.google.token = null;
   req.report.auth.google.refresh = null;
+  req.report.auth.google.expires = null;
   deauth(req,res,next,'google');
 }
 
@@ -158,7 +165,7 @@ exports.deauthTwitter = function(req,res,next) {
 }
 
 exports.deauthFacebook = function(req,res,next) {
-  req.report.auth.google.token = null;
-  req.report.auth.google.refresh = null;
+  req.report.auth.facebook.token = null;
+  req.report.auth.facebook.refresh = null;
   deauth(req,res,next,'facebook');
 }

@@ -152,8 +152,8 @@ exports.deauthGoogle = function(req,res,next) {
 }
 
 exports.deauthTwitter = function(req,res,next) {
-  req.report.auth.google.token = null;
-  req.report.auth.google.secret = null;
+  req.report.auth.twitter.token = null;
+  req.report.auth.twitter.secret = null;
   deauth(req,res,next,'twitter');
 }
 

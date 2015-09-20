@@ -1,10 +1,9 @@
 var urlParser = require('url');
 var UrlPattern = require('url-pattern');
-var reporters = require('../reporters').reporters;
-var async = require('async');
-var _ = require('underscore');
 var utils = require('../lib/utils');
 var Report = require('../lib/database').Report;
+var reportBuilder = require('../lib/report');
+var reporters = require('../reporters').reporters;
 
 function renderForm(req,res,errors) {
   var now = new Date();
@@ -83,13 +82,19 @@ exports.build = function(req,res,next) {
     if (err) {
       next(err);
     } else {
+      var pattern = false;
+      try {
+        pattern = (!req.report.pathPattern || (req.report.pathPattern && req.report.pathPattern.trim().length == 0)) ? false : new UrlPattern(req.report.pathPattern)
+      } catch(e) {
+        console.error(e);
+      }
       var data = {
         'auth': req.report.auth,
         'sampleStart': new Date(req.report.sampleStart),
         'sampleEnd': new Date(req.report.sampleEnd),
         'reportStart': new Date(req.report.reportStart),
         'reportEnd': new Date(req.report.reportEnd),
-        'pattern': (!req.report.pathPattern || (req.report.pathPattern && req.report.pathPattern.trim().length == 0)) ? false : new UrlPattern(req.report.pathPattern),
+        'pattern': pattern,
         'urls': req.report.reportURLs.split('\n').map(function(urlStr) {
           return urlParser.parse(urlStr+'');
         })
@@ -127,95 +132,40 @@ exports.build = function(req,res,next) {
         }
       }
 
-      async.waterfall(
-        [
-          function(callback) {
-            callback(null, data, {
-              'averages': {},
-              'pages': {}
-            });
-          }
-        ].concat(
-          reporters.map(function(reporter) {
-            return function(inData, outData, callback) {
-              async.parallel({
-                'average': function(callback) {
-                  reporter.average(inData,callback);
+      reportBuilder.runReport(data,function(err,reportData,outData) {
+        if (err) {
+          next(err);
+        } else {
+          res.render('report/view',{
+            'title': 'Report',
+            'table': {
+              'fields': [
+                {
+                  'name': 'path',
+                  'label': 'Path'
                 },
-                'page': function(callback) {
-                  reporter.page(inData,callback);
+                {
+                  'name': 'score',
+                  'label': 'Score'
                 }
-              },function(err,results) {
-                if (err) {
-                  return callback(err);
-                } else {
-                  outData.averages[reporter.name] = results.average;
-                  outData.pages[reporter.name] = _.object(
-                    results.page.map(function(row) { return row.path }),
-                    results.page.map(function(row) { return row.value })
-                  );
-                  callback(null,inData, outData);
-                }
-              });
-            };
-          })
-        ),
-        function(err,inData,outData) {
-          if (err) {
-            console.log(err);
-            next(err);
-          } else {
-            var rows = inData.urls.map(function(url) {
-              var total = reporters.reduce(function(previous,current) {
-                if (outData.averages[current.name] !== false) {
-                  return previous + ((outData.pages[current.name][url.path] / outData.averages[current.name]) * current.weight);
-                } else {
-                  return previous;
-                }
-              },0.0);
-              var number = reporters.reduce(function(previous,current) {
-                return previous + (outData.averages[current.name] !== false ? 1 : 0);
-              },0.0);
-              var returnData = {
-                'path': url.path,
-                'score': (Math.round((total / number) * 10000) / 100) + '%'
-              };
-              reporters.forEach(function(reporter) {
-                returnData[reporter.name] = outData.pages[reporter.name][url.path];
-              });
-              return returnData;
-            });
-            res.render('report/view',{
-              'title': 'Report',
-              'table': {
-                'fields': [
-                  {
-                    'name': 'path',
-                    'label': 'Path'
-                  },
-                  {
-                    'name': 'score',
-                    'label': 'Score'
-                  }
-                  ].concat(reporters.map(function(reporter) {
-                    return {
-                      'name': reporter.name,
-                      'label': reporter.label
-                    };
-                  })),
-                'data': rows
-              },
-              'benchmark': reporters.map(function(reporter) {
-                return {
-                  'label': reporter.label,
-                  'value': outData.averages[reporter.name],
-                  'weight': reporter.weight
-                }
-              })
-            });
-          }
+                ].concat(reporters.map(function(reporter) {
+                  return {
+                    'name': reporter.name,
+                    'label': reporter.label
+                  };
+                })),
+              'data': reportData
+            },
+            'benchmark': reporters.map(function(reporter) {
+              return {
+                'label': reporter.label,
+                'value': outData.averages[reporter.name],
+                'weight': reporter.weight
+              }
+            })
+          });
         }
-      );
+      });
     }
   });
 }

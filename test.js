@@ -4,6 +4,7 @@ var hits = require('./reporters/hits');
 var retweets = require('./reporters/retweets');
 var likes = require('./reporters/likes');
 var shares = require('./reporters/shares');
+var report = require('./lib/report');
 var data = require(process.env.TEST_DATA);
 var UrlPattern = require('url-pattern');
 
@@ -182,5 +183,17 @@ describe('Facebook', function() {
         done();
       }
     )
+  });
+});
+
+describe('Score Calculator', function() {
+  it('Calculates proper page scores', function(done) {
+    var scores = report.calculateScores(inData,data.outData);
+    assert.equal(scores.length,data.scoreData.length);
+    for(var i = 0; i < scores.length; i++) {
+      assert.equal(scores[i].path,data.scoreData[i].path);
+      assert.equal(scores[i].score,data.scoreData[i].score);
+    }
+    done();
   });
 });

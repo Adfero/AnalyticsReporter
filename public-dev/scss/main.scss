@@ -16,3 +16,19 @@
     }
   }
 }
+
+#report-chart {
+  .line {
+    fill: none;
+    stroke: gray;
+    stroke-width: 1;
+  }
+  .axis .domain {
+    fill: none;
+    stroke: black;
+    shape-rendering: crispEdges;
+  }
+  .point {
+    fill: black;
+  }
+}

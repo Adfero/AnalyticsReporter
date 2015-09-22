@@ -162,7 +162,8 @@ exports.build = function(req,res,next) {
                 'value': outData.averages[reporter.name],
                 'weight': reporter.weight
               }
-            })
+            }),
+            'chartData': JSON.stringify(reportData)
           });
         }
       });

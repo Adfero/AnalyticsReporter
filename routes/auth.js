@@ -38,3 +38,8 @@ exports.doLogin = passport.authenticate('local', {
   failureRedirect: '/login',
   failureFlash: true
 });
+
+exports.doLogout = function(req, res){
+  req.logout();
+  res.redirect('/');
+}

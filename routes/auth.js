@@ -43,3 +43,11 @@ exports.doLogout = function(req, res){
   req.logout();
   res.redirect('/');
 }
+
+exports.resetPassword = function(req,res) {
+  //TODO
+}
+
+exports.doResetPassword = function(req,res) {
+  //TODO
+}

@@ -106,6 +106,8 @@ function reportCheck(req,res,next) {
 
 app.get('/login',forwardIfLoggedIn,routes.auth.login);
 app.post('/login',routes.auth.doLogin);
+app.get('/login/reset',forwardIfLoggedIn,routes.auth.resetPassword);
+app.post('/login/reset',forwardIfLoggedIn,routes.auth.doResetPassword);
 app.post('/logout',routes.auth.doLogout);
 
 app.get('/',goToLogin,routes.report.list);

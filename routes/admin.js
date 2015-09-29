@@ -1,4 +1,5 @@
 var User = require('../lib/database').User;
+var utils = require('../lib/utils');
 
 exports.list = function(req,res,next) {
   User
@@ -60,10 +61,18 @@ exports.saveUser = function(req,res,next) {
         for(var prop in data) {
           user[prop] = data[prop];
         }
+        var newUser = user && user._id;
         user.save(function(err) {
           if (err) {
             next(err);
           } else {
+            if (newUser) {
+              utils.sendUserResetEmail(user,function(err) {
+                if (err) {
+                  console.error(err);
+                }
+              })
+            }
             res.redirect('/admin/users');
           }
         });

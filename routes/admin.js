@@ -34,7 +34,7 @@ exports.user = function(req,res,next) {
 }
 
 exports.saveUser = function(req,res,next) {
-  var updateUser = function(user) {
+  var updateUser = function(user,newUser) {
     var data = req.body;
     User.findOne({ email: data.email }, function(err, checkUser) {
       if (err) {
@@ -61,15 +61,17 @@ exports.saveUser = function(req,res,next) {
         for(var prop in data) {
           user[prop] = data[prop];
         }
-        var newUser = user && user._id;
         user.save(function(err) {
           if (err) {
             next(err);
           } else {
+            console.log(newUser);
             if (newUser) {
-              utils.sendUserResetEmail(user,function(err) {
+              utils.sendUserResetEmail(user,function(err,info) {
                 if (err) {
                   console.error(err);
+                } else {
+                  console.info(info);
                 }
               })
             }
@@ -84,13 +86,13 @@ exports.saveUser = function(req,res,next) {
       if (err) {
         next(err);
       } else if (user) {
-        updateUser(user);
+        updateUser(user,false);
       } else {
         next();
       }
     });
   } else {
-    updateUser(new User());
+    updateUser(new User(),true);
   }
 }
 

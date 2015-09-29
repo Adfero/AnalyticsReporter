@@ -108,7 +108,10 @@ app.get('/login',forwardIfLoggedIn,routes.auth.login);
 app.post('/login',routes.auth.doLogin);
 app.get('/login/reset',forwardIfLoggedIn,routes.auth.resetPassword);
 app.post('/login/reset',forwardIfLoggedIn,routes.auth.doResetPassword);
-app.post('/logout',routes.auth.doLogout);
+app.get('/login/reset/:hash',forwardIfLoggedIn,routes.auth.doFinishResetPassword);
+app.get('/logout',routes.auth.doLogout);
+app.get('/account',routes.auth.userAccount);
+app.post('/account',routes.auth.saveUserAccount);
 
 app.get('/',goToLogin,routes.report.list);
 app.get('/report',goToLogin,routes.report.newReport);

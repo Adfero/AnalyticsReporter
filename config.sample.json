@@ -19,5 +19,16 @@
   },
   "mongo": {
     "connection_string": ""
+  },
+  "smtp": {
+    "transport": {
+      "host": "",
+      "port": 0,
+      "auth": {
+        "user": "",
+        "pass": ""
+      }
+    },
+    "from": ""
   }
 }

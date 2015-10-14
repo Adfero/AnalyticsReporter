@@ -1,4 +1,5 @@
 var User = require('../lib/database').User;
+var Report = require('../lib/database').Report;
 var utils = require('../lib/utils');
 
 exports.list = function(req,res,next) {
@@ -97,9 +98,24 @@ exports.saveUser = function(req,res,next) {
 }
 
 function renderUserForm(req,res,user) {
-  res.render('admin/user',{
-    'title': 'User',
-    'user': user,
-    'message': req.flash('validation')
-  });
+  Report
+    .find()
+    .sort({'name': 1})
+    .exec(function(err,reports) {
+      if (err) {
+        console.error(err);
+      }
+      res.render('admin/user',{
+        'title': 'User',
+        'user': user,
+        'message': req.flash('validation'),
+        'reports': (reports || []).map(function(report) {
+          return {
+            '_id': report._id,
+            'name': report.name,
+            'access': user.reports.indexOf(report._id) >= 0
+          }
+        })
+      });
+    });
 }

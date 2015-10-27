@@ -118,6 +118,8 @@ app.get('/report',goToLogin,routes.report.newReport);
 app.post('/report',goToLogin,routes.report.saveNewReport);
 app.get('/report/:id',goToLogin,reportCheck,routes.report.form);
 app.post('/report/:id',goToLogin,reportCheck,routes.report.build);
+app.get('/report/:id/:archiveid',goToLogin,reportCheck,routes.report.view);
+app.post('/report/:id/:archiveid',goToLogin,reportCheck,routes.report.view);
 
 app.get('/report/:id/auth/google',goToLogin,reportCheck,routes.reportAuth.startGoogle);
 app.get('/report/auth/google/callback',goToLogin,routes.reportAuth.finishGoogle);

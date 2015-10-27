@@ -4,6 +4,7 @@ var utils = require('../lib/utils');
 var Report = require('../lib/database').Report;
 var reportBuilder = require('../lib/report');
 var reporters = require('../reporters').reporters;
+var ReportArchive = require('../lib/database').ReportArchive;
 
 function renderForm(req,res,errors) {
   var now = new Date();
@@ -132,40 +133,52 @@ exports.build = function(req,res,next) {
         }
       }
 
-      reportBuilder.runReport(data,function(err,reportData,outData) {
+      reportBuilder.runReport(data,function(err,reportArchiveData) {
         if (err) {
           next(err);
         } else {
-          res.render('report/view',{
-            'title': 'Report',
-            'table': {
-              'fields': [
-                {
-                  'name': 'path',
-                  'label': 'Path'
-                },
-                {
-                  'name': 'score',
-                  'label': 'Score'
-                }
-                ].concat(reporters.map(function(reporter) {
-                  return {
-                    'name': reporter.name,
-                    'label': reporter.label
-                  };
-                })),
-              'data': reportData
-            },
-            'benchmark': reporters.map(function(reporter) {
-              return {
-                'label': reporter.label,
-                'value': outData.averages[reporter.name],
-                'weight': reporter.weight
-              }
-            }),
-            'chartData': JSON.stringify(reportData)
-          });
+          reportArchiveData.report = report._id+'';
+          var reportArchive = new ReportArchive(reportArchiveData);
+          reportArchive.save(function(err) {
+            if (err) {
+              next(err);
+            } else {
+              res.redirect('/report/' + report._id + '/' + reportArchive._id);
+            }
+          })
         }
+      });
+    }
+  });
+}
+
+exports.view = function(req,res,next) {
+  ReportArchive.findOne({
+    '_id': req.params.archiveid,
+    'report': req.params.id
+  },function(err,reportArchive) {
+    if (err) {
+      next(err);
+    } else if (!reportArchive) {
+      res.sendStatus(404);
+    } else {
+      res.render('report/view',{
+        'title': 'Report',
+        'table': {
+          'fields': [
+            {
+              'name': 'url',
+              'label': 'Path'
+            },
+            {
+              'name': 'score',
+              'label': 'Score'
+            }
+          ],
+          'data': reportArchive.pages
+        },
+        'benchmark': reportArchive.benchmarks,
+        'chartData': JSON.stringify(reportArchive.pages)
       });
     }
   });

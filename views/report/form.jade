@@ -1,6 +1,6 @@
-extends ../main
+extends tabs
 
-block content
+block tabContent
   form(action="/report/"+report._id,method="post",class="report-form",data-report-id=report._id+"")
     fieldset(id="google-analytics-account")
       legend Accounts

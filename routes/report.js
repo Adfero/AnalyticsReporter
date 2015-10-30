@@ -11,6 +11,7 @@ function renderForm(req,res,errors) {
   var then = new Date(now.getTime() - 2592000000);
   res.render('report/form',{
     'title': req.report.name,
+    'tabs': reportTabs(req),
     'defaultDates': {
       'start': utils.formatDate(then),
       'end': utils.formatDate(now)
@@ -18,6 +19,19 @@ function renderForm(req,res,errors) {
     'report': req.report,
     'message': req.flash('report')
   });
+}
+
+function reportTabs(req) {
+  return [
+    {
+      'url': '/report/' + req.report._id,
+      'label': 'Report'
+    },
+    {
+      'url': '/report/' + req.report._id + '/archive',
+      'label': 'Archive'
+    }
+  ];
 }
 
 exports.list = function(req,res,next) {
@@ -35,6 +49,27 @@ exports.list = function(req,res,next) {
         res.render('report/list',{
           'title': 'Reports',
           'reports': reports
+        });
+      }
+    });
+}
+
+exports.archive = function(req,res,next) {
+  ReportArchive
+    .find({
+      'report': req.params.id
+    })
+    .sort({
+      'created': -1
+    })
+    .exec(function(err,reportArchives) {
+      if (err) {
+        next(err);
+      } else {
+        res.render('report/archives',{
+          'title': req.report.name,
+          'tabs': reportTabs(req),
+          'archives': reportArchives
         });
       }
     });
@@ -163,7 +198,8 @@ exports.view = function(req,res,next) {
       res.sendStatus(404);
     } else {
       res.render('report/view',{
-        'title': 'Report',
+        'title': req.report.name,
+        'reportUrl': '/report/' + reportArchive.report,
         'table': {
           'fields': [
             {

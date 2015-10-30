@@ -41,6 +41,9 @@
                 var $option = $('<option></option>');
                 $option.html(option.name);
                 $option.prop('value',option.value);
+                if ($select.attr('data-selected') == option.value) {
+                  $option.prop('selected',true);
+                }
                 $select.append($option);
               });
             }
@@ -67,6 +70,9 @@
             var $option = $('<option></option>');
             $option.prop('value',field.id);
             $option.html(field.name);
+            if ($select.attr('data-selected') == field.id) {
+              $option.prop('selected',true);
+            }
             $select.append($option);
           });
         }
@@ -80,8 +86,8 @@
 
   function initChart() {
     var margin = {top: 20, right: 20, bottom: 30, left: 50};
-    var width = 960;
-    var height = 500;
+    var width = $('#report-chart').width() - margin.left - margin.right;
+    var height = (500 / 960) * width;
     var circleWidth = 5;
 
     var report = JSON.parse(d3.select("#report-chart").attr('data-points'));
@@ -155,6 +161,6 @@
       .append('text')
       .attr('x',function(d) { return x(d.rawScore) + (circleWidth * 2) })
       .attr('y',function(d) { return y(d.score) + (circleWidth * 2) })
-      .text(function(d) { return d.path; });
+      .text(function(d) { return d.url; });
   }
 })(jQuery);

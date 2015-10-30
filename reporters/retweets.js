@@ -7,7 +7,7 @@ exports.label = 'Retweets';
 exports.weight = 0.25;
 
 exports.average = function(data,done) {
-  if (data.auth.twitter) {
+  if (data.auth.twitter && data.auth.twitter.token) {
     twitter.getUserTweets(data,data.sampleStart,data.sampleEnd,function(err,tweets) {
       if (err) {
         return done(err);
@@ -21,7 +21,7 @@ exports.average = function(data,done) {
 }
 
 exports.page = function(data,done) {
-  if (data.auth.twitter) {
+  if (data.auth.twitter && data.auth.twitter.token) {
     twitter.getUserTweets(data,data.reportStart,data.reportEnd,function(err,tweets) {
       if (err) {
         return done(err);

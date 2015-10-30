@@ -36,6 +36,7 @@ app.use(passport.session());
 
 app.use(function (req, res, next) {
   res.locals.user = req.user;
+  res.locals.url = req.path;
   next();
 });
 
@@ -117,6 +118,7 @@ app.get('/',goToLogin,routes.report.list);
 app.get('/report',goToLogin,routes.report.newReport);
 app.post('/report',goToLogin,routes.report.saveNewReport);
 app.get('/report/:id',goToLogin,reportCheck,routes.report.form);
+app.get('/report/:id/archive',goToLogin,reportCheck,routes.report.archive);
 app.post('/report/:id',goToLogin,reportCheck,routes.report.build);
 app.get('/report/:id/:archiveid',goToLogin,reportCheck,routes.report.view);
 app.post('/report/:id/:archiveid',goToLogin,reportCheck,routes.report.view);
@@ -140,6 +142,10 @@ app.get('/admin/user',goToLogin,mustBeAdmin,routes.admin.user);
 app.post('/admin/user',goToLogin,mustBeAdmin,routes.admin.saveUser);
 app.get('/admin/user/:id',goToLogin,mustBeAdmin,routes.admin.user);
 app.post('/admin/user/:id',goToLogin,mustBeAdmin,routes.admin.saveUser);
+
+app.use(function(error, req, res, next) {
+  console.error(error);
+});
 
 app.listen(config.express.port,function() {
   console.log('Server running.');

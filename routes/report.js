@@ -124,16 +124,37 @@ exports.build = function(req,res,next) {
       } catch(e) {
         console.error(e);
       }
+      var sampleStart = new Date(req.report.sampleStart);
+      var sampleEnd = new Date(req.report.sampleEnd);
       var data = {
         'auth': req.report.auth,
-        'sampleStart': new Date(req.report.sampleStart),
-        'sampleEnd': new Date(req.report.sampleEnd),
+        'sampleStart': sampleStart,
+        'sampleEnd': sampleEnd,
         'reportStart': new Date(req.report.reportStart),
         'reportEnd': new Date(req.report.reportEnd),
+        'sampleDateSegments': [
+          {
+            'start': sampleStart,
+            'end': sampleEnd
+          }
+        ],
         'pattern': pattern,
         'urls': req.report.reportURLs.split('\n').map(function(urlStr) {
           return urlParser.parse(urlStr+'');
         })
+      }
+
+      var reportLength = data.reportEnd.getTime() - data.reportStart.getTime();
+      var sampleLength = data.sampleEnd.getTime() - data.sampleStart.getTime();
+
+      if (sampleLength % reportLength == 0) {
+        data.sampleDateSegments = [];
+        for(var period = data.sampleStart.getTime(); period < data.sampleEnd.getTime(); period += reportLength) {
+          data.sampleDateSegments.push({
+            'start': new Date(period),
+            'end': new Date(period + reportLength)
+          });
+        }
       }
 
       if (!data.auth.google.token || !data.auth.google.account.profile) {
@@ -148,8 +169,8 @@ exports.build = function(req,res,next) {
         req.flash('report','The report time period end date must be after the report time period start date.');
         return renderForm(req,res);
       } 
-      if (data.sampleEnd.getTime() - data.sampleStart.getTime() != data.reportEnd.getTime() - data.reportStart.getTime()) {
-        req.flash('report','The sample and report times can be different periods but they must be equal in length.');
+      if (sampleLength != reportLength && sampleLength % reportLength != 0) {
+        req.flash('report','The sample period must be equal to or an exact multiple of the report period.');
         return renderForm(req,res);
       } 
       if (data.pattern !== false && typeof data.pattern != 'object') {
@@ -210,8 +231,22 @@ exports.view = function(req,res,next) {
               'name': 'score',
               'label': 'Score'
             }
-          ],
-          'data': reportArchive.pages
+          ].concat(reporters),
+          'data': reportArchive.pages.map(function(page) {
+            var obj = {
+              'url': page.url,
+              'score': page.score
+            }
+            reporters.forEach(function(reporter) {
+              var filtered = page.components.filter(function(component) {
+                return component.name == reporter.name;
+              });
+              if (filtered.length > 0) {
+                obj[reporter.name] = filtered[0].value;
+              }
+            });
+            return obj;
+          })
         },
         'benchmark': reportArchive.benchmarks,
         'chartData': JSON.stringify(reportArchive.pages)

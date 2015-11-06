@@ -1,4 +1,5 @@
 var twitter = require('../lib/twitter');
+var async = require('async');
 
 exports.name = 'retweets';
 
@@ -8,13 +9,17 @@ exports.weight = 0.25;
 
 exports.average = function(data,done) {
   if (data.auth.twitter && data.auth.twitter.token) {
-    twitter.getUserTweets(data,data.sampleStart,data.sampleEnd,function(err,tweets) {
-      if (err) {
-        return done(err);
-      } else {
-        return exports.calculateAverage(tweets,data,done);
+    async.parallel(data.sampleDateSegments.map(function(dateSegment) {
+      return function(callback) {
+        twitter.getUserTweets(data,dateSegment.start,dateSegment.end,function(err,tweets) {
+          if (err) {
+            return done(err);
+          } else {
+            return exports.calculateAverage(tweets,data,callback);
+          }
+        });
       }
-    })
+    }),done);
   } else {
     done(null,false);
   }

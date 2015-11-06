@@ -1,4 +1,5 @@
 var facebook = require('../lib/facebook');
+var async = require('async');
 
 exports.name = 'shares';
 
@@ -7,7 +8,11 @@ exports.label = 'Shares';
 exports.weight = 0.25;
 
 exports.average = function(data,done) {
-  facebook.doPageCall(data,data.sampleStart,data.sampleEnd,exports.calculateAverage,done);
+  async.parallel(data.sampleDateSegments.map(function(dateSegment) {
+    return function(callback) {
+      facebook.doPageCall(data,dateSegment.start,dateSegment.end,exports.calculateAverage,callback);
+    };
+  }),done);
 }
 
 exports.page = function(data,done) {

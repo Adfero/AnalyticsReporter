@@ -46,3 +46,8 @@ exports.page = function(data,done) {
     }
   )
 }
+
+exports.calculateAverage = googleanalytics.calculateAverage;
+
+exports.calculatePage = googleanalytics.calculatePage;
+

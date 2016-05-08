@@ -1,31 +1,38 @@
 var config = require('./config.json');
+var models = require('./models');
+var routes = require('./routes');
 var express = require('express');
 var session = require('express-session');
 var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var logger = require('morgan');
-var MemcachedStore = require('connect-memcached')(session);
-var routes = require('./routes');
-var passport = require('passport');
-var User = require('./lib/database').User;
+var MongoStore = require('connect-mongo')(session);
 var flash = require('connect-flash');
 var login = require('connect-ensure-login');
-var Report = require('./lib/database').Report;
-var googleanalytics = require('./lib/googleanalytics');
+var passport = require('passport');
+var mongoose = require('mongoose');
+var login = require('connect-ensure-login');
+
+mongoose.connect(config.mongo.connection_string);
 
 var app = express();
 app.use(logger('combined'));
-app.use(bodyParser.urlencoded({extended:true}));
-app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({
+  extended:true,
+  limit: '8mb'
+}));
+app.use(bodyParser.json({
+  limit: '8mb'
+}));
 app.use(express.static(__dirname + '/public'));
 app.use(cookieParser());
 app.use(session({
-  secret: config.express.session_key,
-  resave: true,
-  proxy: true,
-  saveUninitialized: true,
-  store: new MemcachedStore({
-    hosts: config.express.memcached_hosts
+  'secret': config.express.session_key,
+  'resave': true,
+  'proxy': true,
+  'saveUninitialized': true,
+  'store': new MongoStore({
+    'mongooseConnection': mongoose.connection
   })
 }));
 app.use(flash());
@@ -34,25 +41,16 @@ app.set('views', __dirname + '/views');
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use(function (req, res, next) {
-  res.locals.user = req.user;
-  res.locals.url = req.path;
-  next();
-});
+require('./lib/passport.js')(app);
 
-passport.serializeUser(function(user, done) {
-  done(null, user._id);
-});
-
-passport.deserializeUser(function(id, done) {
-  User.findById(id, function(err, user) {
-    done(err, user);
-  });
+['Report','Site'].forEach(function(modelName) {
+  var model = mongoose.model(modelName);
+  app.param(modelName.toLowerCase(),model.getForAPI);
 });
 
 var goToLogin = login.ensureLoggedIn('/login');
 
-function forwardIfLoggedIn(req,res,next) {
+var forwardIfLoggedIn = function(req,res,next) {
   if (req.user) {
     res.redirect('/');
   } else {
@@ -60,92 +58,44 @@ function forwardIfLoggedIn(req,res,next) {
   }
 }
 
-function mustBeAdmin(req,res,next) {
-  if (req.user && req.user.admin) {
+var requireLoggedIn = function(req,res,next) {
+  if (req.user) {
     next();
   } else {
-    res.send(401);
+    res.sendStatus(401);
   }
 }
 
-function reportCheck(req,res,next) {
-  Report.findById(req.params.id,function(err,report) {
-    if (err) {
-      next(err);
-    } else if (report) {
-      if (req.user.reports.indexOf(report._id+'') >= 0) {
-        req.report = report;
-        if (req.report.auth.google.expires && req.report.auth.google.expires.getTime() < (new Date()).getTime()) {
-          googleanalytics.refresh(req.report.auth.google.refresh,function(err,token,refresh,expires) {
-            if (err) {
-              req.report.auth.google.token = null;
-              req.report.auth.google.refresh = null;
-              req.report.auth.google.expires = null;
-            } else {
-              req.report.auth.google.token = token;
-              req.report.auth.google.refresh = refresh;
-              req.report.auth.google.expires = expires;
-            }
-            req.report.save(function(err) {
-              if (err) {
-                console.error(err);
-              }
-              next();
-            });
-          });
-        } else {
-          next();
-        }
-      } else {
-        res.send(401);
-      }
-    } else {
-      next(new Error('Report not found'));
-    }
+app.get('/',goToLogin,function(req,res) {
+  res.render('index',{
+    'title': 'One Metric'
   });
-}
-
-app.get('/login',forwardIfLoggedIn,routes.auth.login);
-app.post('/login',routes.auth.doLogin);
-app.get('/login/reset',forwardIfLoggedIn,routes.auth.resetPassword);
-app.post('/login/reset',forwardIfLoggedIn,routes.auth.doResetPassword);
-app.get('/login/reset/:hash',forwardIfLoggedIn,routes.auth.doFinishResetPassword);
-app.get('/logout',routes.auth.doLogout);
-app.get('/account',routes.auth.userAccount);
-app.post('/account',routes.auth.saveUserAccount);
-
-app.get('/',goToLogin,routes.report.list);
-app.get('/report',goToLogin,routes.report.newReport);
-app.post('/report',goToLogin,routes.report.saveNewReport);
-app.get('/report/:id',goToLogin,reportCheck,routes.report.form);
-app.get('/report/:id/archive',goToLogin,reportCheck,routes.report.archive);
-app.post('/report/:id',goToLogin,reportCheck,routes.report.build);
-app.get('/report/:id/:archiveid',goToLogin,reportCheck,routes.report.view);
-app.post('/report/:id/:archiveid',goToLogin,reportCheck,routes.report.view);
-
-app.get('/report/:id/auth/google',goToLogin,reportCheck,routes.reportAuth.startGoogle);
-app.get('/report/auth/google/callback',goToLogin,routes.reportAuth.finishGoogle);
-app.get('/report/:id/auth/google/deauth',goToLogin,reportCheck,routes.reportAuth.deauthGoogle);
-app.get('/report/:id/auth/twitter',goToLogin,reportCheck,routes.reportAuth.startTwitter);
-app.get('/report/:id/auth/twitter/callback',goToLogin,reportCheck,routes.reportAuth.finishTwitter);
-app.get('/report/:id/auth/twitter/deauth',goToLogin,reportCheck,routes.reportAuth.deauthTwitter);
-app.get('/report/:id/auth/facebook',goToLogin,reportCheck,routes.reportAuth.startFacebook);
-app.get('/report/:id/auth/facebook/callback',goToLogin,reportCheck,routes.reportAuth.finishFacebook);
-app.get('/report/:id/auth/facebook/deauth',goToLogin,reportCheck,routes.reportAuth.deauthFacebook);
-
-app.get('/report/:id/ajax/google',goToLogin,reportCheck,routes.ajax.google);
-app.get('/report/:id/ajax/facebook',goToLogin,reportCheck,routes.ajax.facebook);
-
-app.get('/admin/users',goToLogin,mustBeAdmin,routes.admin.list);
-app.post('/admin/users',goToLogin,mustBeAdmin,routes.admin.list);
-app.get('/admin/user',goToLogin,mustBeAdmin,routes.admin.user);
-app.post('/admin/user',goToLogin,mustBeAdmin,routes.admin.saveUser);
-app.get('/admin/user/:id',goToLogin,mustBeAdmin,routes.admin.user);
-app.post('/admin/user/:id',goToLogin,mustBeAdmin,routes.admin.saveUser);
-
-app.use(function(error, req, res, next) {
-  console.error(error);
 });
+
+app.get('/signup',forwardIfLoggedIn,routes.account.signup);
+app.post('/signup',forwardIfLoggedIn,routes.account.doSignup);
+
+app.get('/login',forwardIfLoggedIn,routes.account.login);
+app.post('/login',forwardIfLoggedIn,routes.account.doLogin);
+
+app.get('/logout',requireLoggedIn,routes.account.logout);
+
+app.get('/api/site',requireLoggedIn,routes.api.listSites);
+app.post('/api/site',requireLoggedIn,routes.api.createSite);
+app.get('/api/site/:site',requireLoggedIn,routes.api.readSite);
+app.get('/api/site/:site/urls',requireLoggedIn,routes.api.listSiteURLs);
+app.get('/api/site/:site/accounts/google',requireLoggedIn,routes.api.listGoogleAccounts);
+app.put('/api/site/:site',requireLoggedIn,routes.api.updateSite);
+app.delete('/api/site/:site',requireLoggedIn,routes.api.deleteSite);
+
+app.get('/api/report',requireLoggedIn,routes.api.listReports);
+app.post('/api/report',requireLoggedIn,routes.api.createReport);
+app.get('/api/report/:report',requireLoggedIn,routes.api.readReport);
+app.delete('/api/report/:report',requireLoggedIn,routes.api.deleteReport);
+
+app.get('/auth/:site/google',requireLoggedIn,routes.auth.startGoogle);
+app.get('/auth/google/callback',requireLoggedIn,routes.auth.finishGoogle);
+app.get('/auth/:site/google/deauth',requireLoggedIn,routes.auth.deauthGoogle);
 
 app.listen(config.express.port,function() {
   console.log('Server running.');

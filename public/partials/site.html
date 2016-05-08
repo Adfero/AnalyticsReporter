@@ -1,0 +1,79 @@
+<h1 class="page-header">{{ site.name }}</h1>
+<ul class="nav nav-tabs nav-justified">
+  <li role="presentation" class="active"><a href="#">Settings</a></li>
+  <li role="presentation"><a href="#">Profile</a></li>
+  <li role="presentation"><a href="#">Messages</a></li>
+</ul>
+<div class="tab-pane">
+  <uib-alert ng-repeat="alert in alerts" type="{{alert.type}}" close="closeAlert($index)">{{alert.msg}}</uib-alert>
+  <form>
+    <fieldset>
+      <legend>Report Info</legend>
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input class="form-control" id="name" name="name" type="text" ng-model="site.name" placeholder="Site Name" />
+      </div>
+      <div class="form-group">
+        <label for="url">URL</label>
+        <input class="form-control" id="url" name="url" type="text" ng-model="site.url" placeholder="http://" />
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Accounts</legend>
+      <p ng-show="!site.isGoogleAuthenticated()">
+        <a href="/auth/{{ site._id }}/google" class="btn btn-primary">Authenticate Google</a>
+      </p>
+      <div class="form-group" ng-show="site.isGoogleAuthenticated()">
+        <label>Google Account</label>
+        <select
+          class="form-control"
+          ng-model="site.auth.google.account.account"
+          ng-options="account.id as account.name for account in google.accounts"></select>
+      </div>
+      <div class="form-group" ng-show="site.isGoogleAuthenticated()">
+        <label>Google Property</label>
+        <select
+          class="form-control"
+          ng-model="site.auth.google.account.property"
+          ng-options="property.id as property.name for property in google.properties"></select>
+      </div>
+      <div class="form-group" ng-show="site.isGoogleAuthenticated()">
+        <label>Google Profile</label>
+        <select
+          class="form-control"
+          ng-model="site.auth.google.account.profile"
+          ng-options="profile.id as profile.name for profile in google.profiles"></select>
+      </div>
+    </fieldset>
+    <div class="row">
+      <div class="col-md-6">
+        <fieldset>
+          <legend>Benchmark</legend>
+          <div class="form-group">
+            <label for="benchmarkDates">Date Range</label>
+            <input date-range-picker class="form-control date-picker" id="benchmarkDates" type="text" ng-model="datePicker.benchmarkDates" />
+          </div>
+          <div class="form-group">
+            <label for="benchmarkURLs">Sample URLs</label>
+            <textarea rows="10" class="form-control" id="benchmarkURLs" name="benchmarkURLs" type="text" ng-model="benchmarkURLsString" ng-model-options="{ getterSetter: true }"></textarea>
+          </div>
+        </fieldset>
+      </div>
+      <div class="col-md-6">
+        <fieldset>
+          <legend>Report</legend>
+          <div class="form-group">
+            <label for="reportDates">Date Range</label>
+            <input date-range-picker class="form-control date-picker" id="reportDates" type="text" ng-model="datePicker.reportDates" />
+          </div>
+          <div class="form-group">
+            <label for="reportURLs">URLs</label>
+            <textarea rows="10" class="form-control" id="reportURLs" name="reportURLs" type="text" ng-model="reportURLsString" ng-model-options="{ getterSetter: true }"></textarea>
+          </div>
+        </fieldset>
+      </div>
+    </div>
+    <button class="btn btn-primary" ng-click="save()">Save</button>
+    <button class="btn btn-success" ng-click="saveAndReport()">Save + Run Report</button>
+  </form>
+</div>

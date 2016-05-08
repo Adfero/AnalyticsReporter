@@ -3,11 +3,11 @@ extends ../main
 block body
   if message && message.length
     div(class="alert alert-warning", role="alert")= message
-  form(method="post", action="/login")
+  form(method="post", action="/signup")
     div(class="form-group")
       label(for="email") Email Address
       input(class="form-control input-lg", type="email", name="email", id="email", placeholder="john@example.com")
     div(class="form-group")
       label(for="password") Password
       input(class="form-control input-lg", type="password", name="password", id="password")
-    button(type="submit", class="btn btn-primary") Log In
+    button(type="submit", class="btn btn-primary") Sign Up

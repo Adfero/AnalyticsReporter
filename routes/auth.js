@@ -1,144 +1,92 @@
-var passport = require('passport')
-var LocalStrategy = require('passport-local').Strategy;
-var User = require('../lib/database').User;
-var utils = require('../lib/utils');
+var mongoose = require('mongoose');
+var Site = mongoose.model('Site');
+var config = require('../config');
+var GoogleAnalyticsReporter = require('../lib/reporter/googleAnalyticsReporter.js');
 
-passport.use(new LocalStrategy(
-  {
-    usernameField: 'email',
-    passwordField: 'password'
-  },
-  function(username, password, done) {
-    User.findOne({ email: username }, function(err, user) {
-      if (err) { return done(err); }
-      if (!user) {
-        return done(null, false, { message: 'Incorrect username.' });
-      }
-      if (!user.validPassword(password)) {
-        return done(null, false, { message: 'Incorrect password.' });
-      }
-      if (!user.active) {
-        return done(null, false, { message: 'Account disabled.' });
-      }
-      return done(null, user);
-    });
-  }
-));
+var gaReporter = new GoogleAnalyticsReporter(config);
+var googleCallback = config.callback_root + '/auth/google/callback';
 
-exports.login = [
-  function(req,res) {
-    res.render('account/login',{
-      'title': 'Login',
-      'message': req.flash('failureFlash')
-    });
-  }
-]
-
-exports.doLogin = passport.authenticate('local', { 
-  successRedirect: '/',
-  failureRedirect: '/login',
-  failureFlash: true
-});
-
-exports.doLogout = function(req, res){
-  req.logout();
-  res.redirect('/');
-}
-
-function sendResetPage(req,res) {
-  res.render('account/reset',{
-    'title': 'Reset Your Password',
-    'message': req.flash('info')
+exports.startGoogle = function(req,res) {
+  var authURL = gaReporter.oauthClient.getAuthorizeUrl({
+    'response_type': 'code',
+    'redirect_uri': googleCallback,
+    'scope': [
+      'https://www.googleapis.com/auth/plus.login',
+      'https://www.googleapis.com/auth/analytics.readonly'
+    ].join(' '),
+    'state': req.site._id+'',
+    'access_type': 'offline',
+    'approval_prompt': 'force'
   });
+  res.redirect(authURL);
 }
 
-exports.resetPassword = sendResetPage;
-
-exports.doResetPassword = function(req,res,next) {
-  if (req.body.email) {
-    User.findOne({ email: req.body.email }, function(err, user) {
+exports.finishGoogle = function(req,res,next) {
+  if (req.query.state) {
+    Site.findById(req.query.state,function(err,site) {
       if (err) {
         next(err);
-      } else if (!user) {
-        req.flash('info', 'No account exists with that email.');
-        sendResetPage(req,res);
-      } else {
-        utils.sendUserResetEmail(user,function(err) {
-          if (err) {
-            next(err);
-          } else {
-            req.flash('info', 'Please check your email for a password reset link.');
-            sendResetPage(req,res);
-          }
-        })
-      }
-    });
-  } else {
-    res.sendStatus(400);
-  }
-}
-
-exports.doFinishResetPassword = function(req,res,next) {
-  if (req.params.hash) {
-    User.findOne(
-      {
-        resetHash: req.params.hash,
-        resetExpiration: {
-          $gte: new Date()
-        }
-      },function(err, user) {
-        if (err) {
-          next(err);
-        } else if (!user) {
-          res.sendStatus(404);
-        } else {
-          user.resetHash = null;
-          user.resetExpiration = null;
-          user.save(function(err) {
+      } else if (site && req.user.sites.indexOf(site._id+'') >= 0) {
+        req.site = site;
+        var code = req.query.code;
+        var now = new Date().getTime();
+        gaReporter.oauthClient.getOAuthAccessToken(
+          code,
+          {
+            'grant_type': 'authorization_code',
+            'redirect_uri': googleCallback
+          },
+          function(err, accessToken, refreshToken, params) {
             if (err) {
               next(err);
             } else {
-              req.logIn(user, function (err) {
-                if(err) {
-                  next(err);
-                } else {
-                  res.redirect('/account');
-                }
-              })
+              if (!req.site.auth) {
+                req.site.auth = {};
+              }
+              var account = {};
+              if (req.site.auth.google && req.site.auth.google.account) {
+                account = req.site.auth.google.account;
+              }
+              req.site.auth.google = {
+                'token': accessToken,
+                'refresh': refreshToken,
+                'expires': new Date(now + (params['expires_in'] * 1000)),
+                'account': account
+              };
+              wrapCallback(req,res,next);
             }
-          });
-        }
+          }
+        );
+      } else {
+        next(new Error('Report not found or not valid'));
       }
-    );
+    });
   } else {
-    res.sendStatus(400);
+    next();
   }
 }
 
-exports.userAccount = renderUserForm;
+exports.deauthGoogle = function(req,res,next) {
+  req.report.auth.google = null;
+  deauth(req,res,next);
+}
 
-exports.saveUserAccount = function(req,res,next) {
-  if (!req.body.password || (req.body.password && req.body.password.trim() == '')) {
-    req.flash('validation', 'Please specify a password.');
-    return renderUserForm(req,res);
-  } else if (req.body.password != req.body['verify-password']) {
-    req.flash('validation', 'Password entry mismatch.');
-    return renderUserForm(req,res);
-  }
-  req.user.setPassword(req.body.password);
-  req.user.save(function(err) {
+function wrapCallback(req,res,next) {
+  req.site.save(function(err) {
     if (err) {
       next(err);
     } else {
-      renderUserForm(req,res);
+      res.redirect('/#/site/' + req.site._id);
     }
-  });
+  })
 }
 
-function renderUserForm(req,res) {
-  res.render('account/form',{
-    'title': 'User',
-    'user': req.user,
-    'message': req.flash('validation')
+function deauth(req,res,next) {
+  req.site.save(function(err) {
+    if (err) {
+      next(err);
+    } else {
+      res.redirect(req.header('Referer'));
+    }
   });
 }

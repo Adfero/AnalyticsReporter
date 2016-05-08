@@ -1,9 +1,0 @@
-extends ../main
-
-block content
-  ul(class="nav nav-tabs")
-    for tab in tabs
-      li(class=tab.url == url ? 'active' : false)
-        a(href=tab.url)= tab.label
-  div(class="clearfix")
-    block tabContent

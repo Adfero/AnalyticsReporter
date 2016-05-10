@@ -6,6 +6,9 @@ var schema = new mongoose.Schema({
     'type': mongoose.Schema.Types.ObjectId,
     'ref': 'Site'
   },
+  'reportURLs': [ String ],
+  'reportStart': Date,
+  'reportEnd': Date,
   'averages': mongoose.Schema.Types.Mixed,
   'data': [
     {

@@ -23123,14 +23123,30 @@ angular.module("onemetric.service.google", []).factory("Google", [ "$http", func
     };
 } ]);
 
-angular.module("onemetric.service.report", [ "ngResource" ]).factory("Report", [ "$resource", function($resource) {
+angular.module("onemetric.service.report", [ "ngResource", "onemetric.service.validationTools" ]).factory("Report", [ "$resource", "validationTools", function($resource, validationTools) {
     var Report = $resource("/api/report/:id", {
         id: "@_id"
     });
+    Report.prototype.isValid = function() {
+        return this.reportURLs && this.reportURLs.length > 0 && this.reportStart && this.reportEnd;
+    };
+    Report.prototype.generateValidationFeedback = function() {
+        var errors = [];
+        if (!validationTools.isValidDateRange(this.reportStart, this.reportEnd)) {
+            errors.push("Please provide a report date range.");
+        }
+        if (!(this.site && this.site.benchmarkStart && this.site.benchmarkEnd && this.reportStart && this.reportEnd && (this.site.benchmarkEnd.getTime() - this.site.benchmarkStart.getTime() == this.reportEnd.getTime() - this.reportStart.getTime() || (this.site.benchmarkEnd.getTime() - this.site.benchmarkStart.getTime()) % (this.reportEnd.getTime() - this.reportStart.getTime()) == 0))) {
+            errors.push("Please provide a benchmark date range that is equal-to or a multiple of the report date range.");
+        }
+        if (!validationTools.isValidArrayOfUrls(this.reportURLs)) {
+            errors.push("Please provide a set of valid report URLs.");
+        }
+        return errors;
+    };
     return Report;
 } ]);
 
-angular.module("onemetric.service.site", [ "ngResource" ]).factory("Site", [ "$resource", function($resource) {
+angular.module("onemetric.service.site", [ "ngResource", "onemetric.service.validationTools" ]).factory("Site", [ "$resource", "validationTools", function($resource, validationTools) {
     var dateFormatterInterceptor = function(response) {
         [ "reportStart", "reportEnd", "benchmarkStart", "benchmarkEnd" ].forEach(function(prop) {
             if (response.resource[prop]) {
@@ -23162,29 +23178,20 @@ angular.module("onemetric.service.site", [ "ngResource" ]).factory("Site", [ "$r
         return this.name && this.name.trim().length > 0 && this.url && this.url.trim().length > 0;
     };
     Site.prototype.isDeepValid = function() {
-        return this.isBasicValid() && this.reportURLs && this.reportURLs.length > 0 && this.benchmarkURLs && this.benchmarkURLs.length > 0 && this.reportStart && this.reportEnd && this.benchmarkStart && this.benchmarkEnd;
+        return this.isBasicValid() && this.benchmarkURLs && this.benchmarkURLs.length > 0 && this.benchmarkStart && this.benchmarkEnd;
     };
     Site.prototype.generateValidationFeedback = function() {
         var errors = [];
-        if (!this._isFullString(this.name)) {
+        if (!validationTools.isFullString(this.name)) {
             errors.push("Please provide a name.");
         }
-        if (!this._isFullString(this.url)) {
+        if (!validationTools.isFullString(this.url)) {
             errors.push("Please provide a url.");
         }
-        if (!this._isValidDateRange(this.benchmarkStart, this.benchmarkEnd)) {
+        if (!validationTools.isValidDateRange(this.benchmarkStart, this.benchmarkEnd)) {
             errors.push("Please provide a benchmark date range.");
         }
-        if (!this._isValidDateRange(this.reportStart, this.reportEnd)) {
-            errors.push("Please provide a report date range.");
-        }
-        if (!(this.benchmarkStart && this.benchmarkEnd && this.reportStart && this.reportEnd && (this.benchmarkEnd.getTime() - this.benchmarkStart.getTime() == this.reportEnd.getTime() - this.reportStart.getTime() || (this.benchmarkEnd.getTime() - this.benchmarkStart.getTime()) % (this.reportEnd.getTime() - this.reportStart.getTime()) == 0))) {
-            errors.push("Please provide a benchmark date range that is equal-to or a multiple of the report date range.");
-        }
-        if (!this._isValidArrayOfUrls(this.reportURLs)) {
-            errors.push("Please provide a set of valid report URLs.");
-        }
-        if (!this._isValidArrayOfUrls(this.benchmarkURLs)) {
+        if (!validationTools.isValidArrayOfUrls(this.benchmarkURLs)) {
             errors.push("Please provide a set of valid sample URLs.");
         }
         return errors;
@@ -23192,22 +23199,27 @@ angular.module("onemetric.service.site", [ "ngResource" ]).factory("Site", [ "$r
     Site.prototype.isGoogleAuthenticated = function() {
         return this.auth && this.auth.google && this.auth.google.token;
     };
-    Site.prototype._isFullString = function(string) {
-        return string && string.trim().length > 0;
-    };
-    Site.prototype._isValidDateRange = function(date1, date2) {
-        return date1 && date2 && date1.getTime() < date2.getTime();
-    };
-    Site.prototype._isValidArrayOfUrls = function(array) {
-        if (array && array.length > 0) {
-            return array.filter(function(url) {
-                return url.trim().length > 0 && url.match(/(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)/g) != null;
-            }).length > 0;
-        } else {
-            return false;
+    return Site;
+} ]);
+
+angular.module("onemetric.service.validationTools", []).factory("validationTools", [ function() {
+    return {
+        isFullString: function(string) {
+            return string && string.trim().length > 0;
+        },
+        isValidDateRange: function(date1, date2) {
+            return date1 && date2 && date1.getTime() < date2.getTime();
+        },
+        isValidArrayOfUrls: function(array) {
+            if (array && array.length > 0) {
+                return array.filter(function(url) {
+                    return url.trim().length > 0 && url.match(/(http(s)?:\/\/.)?(www\.)?[-a-zA-Z0-9@:%._\+~#=]{2,256}\.[a-z]{2,6}\b([-a-zA-Z0-9@:%_\+.~#?&\/\/=]*)/g) != null;
+                }).length > 0;
+            } else {
+                return false;
+            }
         }
     };
-    return Site;
 } ]);
 
 angular.module("onemetric.controller.app", [ "ui.bootstrap", "daterangepicker", "onemetric.service.site" ]).controller("AppController", [ "$window", "$scope", "$state", "$stateParams", "$uibModal", "Site", function($window, $scope, $state, $stateParams, $uibModal, Site) {
@@ -23258,7 +23270,7 @@ angular.module("onemetric.controller.report", [ "ui.bootstrap", "onemetric.servi
     });
 } ]);
 
-angular.module("onemetric.controller.site", [ "ui.bootstrap", "daterangepicker", "onemetric.service.site", "onemetric.service.report", "onemetric.service.google" ]).controller("SiteController", [ "$window", "$scope", "$state", "$stateParams", "Site", "Report", "Google", function($window, $scope, $state, $stateParams, Site, Report, Google) {
+angular.module("onemetric.controller.site", [ "ui.bootstrap", "daterangepicker", "onemetric.service.site", "onemetric.service.report", "onemetric.service.google" ]).controller("SiteController", [ "$window", "$scope", "$state", "$stateParams", "Site", "Report", "Google", "$uibModal", function($window, $scope, $state, $stateParams, Site, Report, Google, $uibModal) {
     var now = new Date();
     var lastWeek = new Date(now.getTime() - 864e5 * 7);
     $scope.alerts = [];
@@ -23269,10 +23281,6 @@ angular.module("onemetric.controller.site", [ "ui.bootstrap", "daterangepicker",
         benchmarkDates: {
             startDate: lastWeek,
             endDate: now
-        },
-        reportDates: {
-            startDate: lastWeek,
-            endDate: now
         }
     };
     $scope.benchmarkURLsString = function(urls) {
@@ -23281,23 +23289,11 @@ angular.module("onemetric.controller.site", [ "ui.bootstrap", "daterangepicker",
         }
         return $scope.site && $scope.site.benchmarkURLs ? $scope.site.benchmarkURLs.join("\n") : "";
     };
-    $scope.reportURLsString = function(urls) {
-        if ($scope.site && typeof urls != "undefined") {
-            $scope.site.reportURLs = urls.split("\n");
-        }
-        return $scope.site && $scope.site.reportURLs ? $scope.site.reportURLs.join("\n") : "";
-    };
     $scope.$watch("datePicker.benchmarkDates.startDate", function() {
         $scope.site.benchmarkStart = new Date($scope.datePicker.benchmarkDates.startDate);
     });
     $scope.$watch("datePicker.benchmarkDates.endDate", function() {
         $scope.site.benchmarkEnd = new Date($scope.datePicker.benchmarkDates.endDate);
-    });
-    $scope.$watch("datePicker.reportDates.startDate", function() {
-        $scope.site.reportStart = new Date($scope.datePicker.reportDates.startDate);
-    });
-    $scope.$watch("datePicker.reportDates.endDate", function() {
-        $scope.site.reportEnd = new Date($scope.datePicker.reportDates.endDate);
     });
     if ($stateParams.siteId) {
         $scope.site = Site.get({
@@ -23306,8 +23302,6 @@ angular.module("onemetric.controller.site", [ "ui.bootstrap", "daterangepicker",
             document.title = $scope.site.name;
             $scope.site.benchmarkStart = $scope.datePicker.benchmarkDates.startDate = $scope.site.benchmarkStart || lastWeek;
             $scope.site.benchmarkEnd = $scope.datePicker.benchmarkDates.endDate = $scope.site.benchmarkEnd || now;
-            $scope.site.reportStart = $scope.datePicker.reportDates.startDate = $scope.site.reportStart || lastWeek;
-            $scope.site.reportEnd = $scope.datePicker.reportDates.endDate = $scope.site.reportEnd || now;
             loadGoogleAccounts(function() {
                 setTimeout(function() {
                     $scope.$watch("site.auth.google.account.account", function() {
@@ -23350,23 +23344,7 @@ angular.module("onemetric.controller.site", [ "ui.bootstrap", "daterangepicker",
             });
         }
     };
-    $scope.saveAndReport = function() {
-        validateAndSave(function() {
-            $scope.alerts = [ {
-                msg: "Site saved!",
-                type: "success"
-            } ];
-        });
-    };
     $scope.save = function() {
-        validateAndSave(function() {
-            $scope.alerts = [ {
-                msg: "Site saved!",
-                type: "success"
-            } ];
-        });
-    };
-    function validateAndSave(callback) {
         var errors = $scope.site.generateValidationFeedback();
         if (errors.length > 0) {
             $scope.alerts = [];
@@ -23377,9 +23355,43 @@ angular.module("onemetric.controller.site", [ "ui.bootstrap", "daterangepicker",
                 });
             });
         } else {
-            $scope.site.$update(callback);
+            $scope.site.$update(function() {
+                $scope.alerts = [ {
+                    msg: "Site saved!",
+                    type: "success"
+                } ];
+            });
         }
-    }
+    };
+    $scope.runReport = function() {
+        $uibModal.open({
+            animation: true,
+            templateUrl: "/partials/reportModal.html",
+            controller: "RunReportModal",
+            size: "md",
+            resolve: {
+                site: function() {
+                    return $scope.site;
+                },
+                doneCallback: function() {
+                    return function(site) {};
+                }
+            }
+        });
+    };
+    $scope.showHideMap = {
+        settings: true,
+        reports: true
+    };
+    $scope.expandCollapse = function(section) {
+        $scope.showHideMap[section] = !$scope.showHideMap[section];
+    };
+    $scope.getExpandCollapseArrow = function(section) {
+        return $scope.showHideMap[section] ? "top" : "bottom";
+    };
+    $scope.showHide = function(section) {
+        return $scope.showHideMap[section];
+    };
     function loadGoogleAccounts(done) {
         if ($scope.site && $scope.site.auth && $scope.site.auth.google) {
             var account = $scope.site.auth.google.account ? $scope.site.auth.google.account.account : null;
@@ -23402,6 +23414,55 @@ angular.module("onemetric.controller.site", [ "ui.bootstrap", "daterangepicker",
             });
         }
     }
+} ]).controller("RunReportModal", [ "$scope", "$uibModalInstance", "Report", "site", "doneCallback", function($scope, $uibModalInstance, Report, site, doneCallback) {
+    $scope.report = new Report({
+        reportStart: site.benchmarkStart,
+        reportEnd: site.benchmarkEnd,
+        site: site,
+        reportURLs: []
+    });
+    $scope.alerts = [];
+    $scope.closeAlert = function(index) {
+        $scope.alerts.splice(index, 1);
+    };
+    $scope.datePicker = {
+        dateRange: {
+            startDate: $scope.report.reportStart,
+            endDate: $scope.report.reportEnd
+        }
+    };
+    $scope.reportURLsString = function(urls) {
+        if ($scope.report && typeof urls != "undefined") {
+            $scope.report.reportURLs = urls.split("\n");
+        }
+        return $scope.report && $scope.report.reportURLs ? $scope.report.reportURLs.join("\n") : "";
+    };
+    $scope.$watch("datePicker.startDate", function() {
+        $scope.report.reportStart = new Date($scope.datePicker.dateRange.startDate);
+    });
+    $scope.$watch("datePicker.endDate", function() {
+        $scope.report.reportEnd = new Date($scope.datePicker.dateRange.endDate);
+    });
+    $scope.cancel = function() {
+        $uibModalInstance.dismiss("cancel");
+    };
+    $scope.run = function() {
+        var errors = $scope.report.generateValidationFeedback();
+        if (errors.length > 0) {
+            $scope.alerts = [];
+            errors.forEach(function(error) {
+                $scope.alerts.push({
+                    msg: error,
+                    type: "danger"
+                });
+            });
+        } else {
+            $scope.report.$save(function() {
+                $uibModalInstance.close();
+                doneCallback($scope.report);
+            });
+        }
+    };
 } ]);
 
 var app = angular.module("onemetric", [ "ui.router", "onemetric.controller.app", "onemetric.controller.site", "onemetric.controller.report" ]);

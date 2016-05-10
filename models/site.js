@@ -10,10 +10,7 @@ var schema = new mongoose.Schema({
   'url': String,
   'created': { type: Date, default: Date.now },
   'modified': { type: Date, default: Date.now },
-  'reportURLs': [ String ],
   'benchmarkURLs': [ String ],
-  'reportStart': Date,
-  'reportEnd': Date,
   'benchmarkStart': Date,
   'benchmarkEnd': Date,
   'auth': {

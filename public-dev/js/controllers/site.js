@@ -5,7 +5,7 @@ angular.module('onemetric.controller.site', [
   'onemetric.service.report',
   'onemetric.service.google'
 ])
-  .controller('SiteController', ['$window', '$scope', '$state', '$stateParams', 'Site', 'Report', 'Google', function($window, $scope, $state, $stateParams, Site, Report, Google) {
+  .controller('SiteController', ['$window', '$scope', '$state', '$stateParams', 'Site', 'Report', 'Google', '$uibModal', function($window, $scope, $state, $stateParams, Site, Report, Google, $uibModal) {
     var now = new Date();
     var lastWeek = new Date(now.getTime() - (86400000 * 7));
 
@@ -18,10 +18,6 @@ angular.module('onemetric.controller.site', [
       'benchmarkDates': {
         'startDate': lastWeek,
         'endDate': now
-      },
-      'reportDates': {
-        'startDate': lastWeek,
-        'endDate': now
       }
     };
 
@@ -31,24 +27,12 @@ angular.module('onemetric.controller.site', [
       }
       return $scope.site && $scope.site.benchmarkURLs ? $scope.site.benchmarkURLs.join('\n') : '';
     }
-    $scope.reportURLsString = function(urls) {
-      if ($scope.site && typeof urls != 'undefined') {
-        $scope.site.reportURLs = urls.split('\n');
-      }
-      return $scope.site && $scope.site.reportURLs ? $scope.site.reportURLs.join('\n') : '';
-    }
 
     $scope.$watch('datePicker.benchmarkDates.startDate',function() {
       $scope.site.benchmarkStart = new Date($scope.datePicker.benchmarkDates.startDate);
     });
     $scope.$watch('datePicker.benchmarkDates.endDate',function() {
       $scope.site.benchmarkEnd = new Date($scope.datePicker.benchmarkDates.endDate);
-    });
-    $scope.$watch('datePicker.reportDates.startDate',function() {
-      $scope.site.reportStart = new Date($scope.datePicker.reportDates.startDate);
-    });
-    $scope.$watch('datePicker.reportDates.endDate',function() {
-      $scope.site.reportEnd = new Date($scope.datePicker.reportDates.endDate);
     });
 
     if ($stateParams.siteId) {
@@ -57,8 +41,6 @@ angular.module('onemetric.controller.site', [
 
         $scope.site.benchmarkStart = $scope.datePicker.benchmarkDates.startDate = $scope.site.benchmarkStart || lastWeek;
         $scope.site.benchmarkEnd = $scope.datePicker.benchmarkDates.endDate = $scope.site.benchmarkEnd || now;
-        $scope.site.reportStart = $scope.datePicker.reportDates.startDate = $scope.site.reportStart || lastWeek;
-        $scope.site.reportEnd = $scope.datePicker.reportDates.endDate = $scope.site.reportEnd || now;
 
         loadGoogleAccounts(function() {
           setTimeout(function() {
@@ -101,25 +83,7 @@ angular.module('onemetric.controller.site', [
       }
     }
 
-    $scope.saveAndReport = function() {
-      validateAndSave(function() {
-        $scope.alerts = [{
-          'msg': 'Site saved!',
-          'type': 'success'
-        }];
-      });
-    }
-
     $scope.save = function() {
-      validateAndSave(function() {
-        $scope.alerts = [{
-          'msg': 'Site saved!',
-          'type': 'success'
-        }];
-      });
-    }
-
-    function validateAndSave(callback) {
       var errors = $scope.site.generateValidationFeedback();
       if (errors.length > 0) {
         $scope.alerts = [];
@@ -130,8 +94,49 @@ angular.module('onemetric.controller.site', [
           });
         });
       } else {
-        $scope.site.$update(callback);
+        $scope.site.$update(function() {
+          $scope.alerts = [{
+            'msg': 'Site saved!',
+            'type': 'success'
+          }];
+        });
       }
+    }
+
+    $scope.runReport = function() {
+      $uibModal.open({
+        'animation': true,
+        'templateUrl': '/partials/reportModal.html',
+        'controller': 'RunReportModal',
+        'size': 'md',
+        'resolve': {
+          'site': function() {
+            return $scope.site;
+          },
+          'doneCallback': function() {
+            return function(site) {
+
+            }
+          }
+        }
+      });
+    }
+
+    $scope.showHideMap = {
+      'settings': true,
+      'reports': true
+    };
+
+    $scope.expandCollapse = function(section) {
+      $scope.showHideMap[section] = !$scope.showHideMap[section];
+    }
+
+    $scope.getExpandCollapseArrow = function(section) {
+      return $scope.showHideMap[section] ? 'top' : 'bottom';
+    }
+
+    $scope.showHide = function(section) {
+      return $scope.showHideMap[section];
     }
 
     function loadGoogleAccounts(done) {
@@ -156,5 +161,61 @@ angular.module('onemetric.controller.site', [
         });
       }
     }
+  }])
+  .controller('RunReportModal', ['$scope', '$uibModalInstance', 'Report', 'site', 'doneCallback', function($scope, $uibModalInstance, Report, site, doneCallback) {
+    $scope.report = new Report({
+      'reportStart': site.benchmarkStart,
+      'reportEnd': site.benchmarkEnd,
+      'site': site,
+      'reportURLs': []
+    });
 
+    $scope.alerts = [];
+    $scope.closeAlert = function(index) {
+      $scope.alerts.splice(index, 1);
+    };
+
+
+    $scope.datePicker = {
+      'dateRange': {
+        'startDate': $scope.report.reportStart,
+        'endDate': $scope.report.reportEnd
+      }
+    };
+
+    $scope.reportURLsString = function(urls) {
+      if ($scope.report && typeof urls != 'undefined') {
+        $scope.report.reportURLs = urls.split('\n');
+      }
+      return $scope.report && $scope.report.reportURLs ? $scope.report.reportURLs.join('\n') : '';
+    };
+
+    $scope.$watch('datePicker.startDate',function() {
+      $scope.report.reportStart = new Date($scope.datePicker.dateRange.startDate);
+    });
+    $scope.$watch('datePicker.endDate',function() {
+      $scope.report.reportEnd = new Date($scope.datePicker.dateRange.endDate);
+    });
+
+    $scope.cancel = function() {
+      $uibModalInstance.dismiss('cancel');
+    };
+
+    $scope.run = function() {
+      var errors = $scope.report.generateValidationFeedback();
+      if (errors.length > 0) {
+        $scope.alerts = [];
+        errors.forEach(function(error) {
+          $scope.alerts.push({
+            'msg': error,
+            'type': 'danger'
+          });
+        });
+      } else {
+        $scope.report.$save(function() {
+          $uibModalInstance.close();
+          doneCallback($scope.report);
+        });
+      }
+    };
   }]);

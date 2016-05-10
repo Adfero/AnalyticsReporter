@@ -80,17 +80,21 @@
     </button>
   </div>
   <div class="panel-body" ng-show="showHide('reports')">
-    <button class="btn btn-success" ng-click="runReport()">Run Report</button>
+    <button class="btn btn-success" ng-click="runReport()" ng-disabled="!site.isValid()">Run Report</button>
     <table class="table table-striped">
       <thead>
         <tr>
-          <th>Date Range</th>
-          <th>URL</th>
-          <th>Score</th>
+          <th>Start Date</th>
+          <th>End Date</th>
+          <th>URLs</th>
         </tr>
       </thead>
       <tbody>
-
+        <tr ng-repeat="report in reports">
+          <td>{{ report.reportStart | date:'yyyy-MM-dd' }}</td>
+          <td>{{ report.reportEnd | date:'yyyy-MM-dd' }}</td>
+          <td>{{ report.getReportURLsSummary() }}</td>
+        </tr>
       </tbody>
     </table>
   </div>

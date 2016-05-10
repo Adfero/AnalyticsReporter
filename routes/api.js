@@ -117,14 +117,18 @@ exports.listReports = function(req,res,next) {
   }
 };
 
-exports.createReport = function(req,res,ext) {
+exports.createReport = function(req,res,next) {
   if (req.body.site) {
     async.waterfall([
       function(next1) {
+        if (typeof req.body.site == 'object') {
+          req.body.site = req.body.site._id;
+        }
         Site.findById(req.body.site,next1);
       },
       function(site,next1) {
-        site.buildReport(next1);
+        var report = new Report(req.body);
+        site.buildReport(report,next1);
       }
     ],function(err,report) {
       if (err) {

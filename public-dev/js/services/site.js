@@ -4,7 +4,7 @@ angular.module('onemetric.service.site', [
 ])
   .factory('Site', ['$resource', 'validationTools', function($resource, validationTools) {
     var dateFormatterInterceptor = function (response) {
-      ['reportStart','reportEnd','benchmarkStart','benchmarkEnd'].forEach(function(prop) {
+      ['benchmarkStart','benchmarkEnd'].forEach(function(prop) {
         if (response.resource[prop]) {
           response.resource[prop] = new Date(Date.parse(response.resource[prop]));
         }
@@ -43,7 +43,10 @@ angular.module('onemetric.service.site', [
         && this.benchmarkURLs
         && this.benchmarkURLs.length > 0
         && this.benchmarkStart
-        && this.benchmarkEnd;
+        && this.benchmarkEnd
+        && validationTools.isValidDateRange(this.benchmarkStart,this.benchmarkEnd)
+        && validationTools.isValidArrayOfUrls(this.benchmarkURLs)
+        && this.hasGoogleProfile();
     };
 
     Site.prototype.generateValidationFeedback = function() {
@@ -60,8 +63,15 @@ angular.module('onemetric.service.site', [
       if (!validationTools.isValidArrayOfUrls(this.benchmarkURLs)) {
         errors.push('Please provide a set of valid sample URLs.');
       }
+      if (!this.hasGoogleProfile()) {
+        errors.push('Please log in to your Google account and select a profile.');
+      }
       return errors;
     };
+
+    Site.prototype.hasGoogleProfile = function() {
+      return this.isGoogleAuthenticated() && this.auth && this.auth.google && this.auth.google.account && this.auth.google.account.profile;
+    }
 
     Site.prototype.isGoogleAuthenticated = function() {
       return this.auth && this.auth.google && this.auth.google.token;

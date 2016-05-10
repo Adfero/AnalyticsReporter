@@ -3,7 +3,28 @@ angular.module('onemetric.service.report', [
   'onemetric.service.validationTools'
 ])
   .factory('Report', ['$resource', 'validationTools', function($resource, validationTools) {
-    var Report = $resource('/api/report/:id', { id: '@_id' });
+    var dateFormatterInterceptor = function(response) {
+      ['reportStart','reportEnd'].forEach(function(prop) {
+        if (response.resource[prop]) {
+          response.resource[prop] = new Date(Date.parse(response.resource[prop]));
+        }
+      });
+      return response;
+    }
+
+    var Report = $resource('/api/report/:id', { id: '@_id' }, {
+      'query': {
+        'method': 'GET',
+        'isArray': true,
+        'interceptor': {
+          'response': dateFormatterInterceptor,
+        }
+      }
+    });
+
+    Report.prototype.getReportURLsSummary = function() {
+      return this.reportURLs ? this.reportURLs.join(', ') : '';
+    };
 
     Report.prototype.isValid = function() {
       return this.reportURLs

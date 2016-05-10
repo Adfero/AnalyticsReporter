@@ -23124,9 +23124,28 @@ angular.module("onemetric.service.google", []).factory("Google", [ "$http", func
 } ]);
 
 angular.module("onemetric.service.report", [ "ngResource", "onemetric.service.validationTools" ]).factory("Report", [ "$resource", "validationTools", function($resource, validationTools) {
+    var dateFormatterInterceptor = function(response) {
+        [ "reportStart", "reportEnd" ].forEach(function(prop) {
+            if (response.resource[prop]) {
+                response.resource[prop] = new Date(Date.parse(response.resource[prop]));
+            }
+        });
+        return response;
+    };
     var Report = $resource("/api/report/:id", {
         id: "@_id"
+    }, {
+        query: {
+            method: "GET",
+            isArray: true,
+            interceptor: {
+                response: dateFormatterInterceptor
+            }
+        }
     });
+    Report.prototype.getReportURLsSummary = function() {
+        return this.reportURLs ? this.reportURLs.join(", ") : "";
+    };
     Report.prototype.isValid = function() {
         return this.reportURLs && this.reportURLs.length > 0 && this.reportStart && this.reportEnd;
     };
@@ -23148,7 +23167,7 @@ angular.module("onemetric.service.report", [ "ngResource", "onemetric.service.va
 
 angular.module("onemetric.service.site", [ "ngResource", "onemetric.service.validationTools" ]).factory("Site", [ "$resource", "validationTools", function($resource, validationTools) {
     var dateFormatterInterceptor = function(response) {
-        [ "reportStart", "reportEnd", "benchmarkStart", "benchmarkEnd" ].forEach(function(prop) {
+        [ "benchmarkStart", "benchmarkEnd" ].forEach(function(prop) {
             if (response.resource[prop]) {
                 response.resource[prop] = new Date(Date.parse(response.resource[prop]));
             }
@@ -23178,7 +23197,7 @@ angular.module("onemetric.service.site", [ "ngResource", "onemetric.service.vali
         return this.name && this.name.trim().length > 0 && this.url && this.url.trim().length > 0;
     };
     Site.prototype.isDeepValid = function() {
-        return this.isBasicValid() && this.benchmarkURLs && this.benchmarkURLs.length > 0 && this.benchmarkStart && this.benchmarkEnd;
+        return this.isBasicValid() && this.benchmarkURLs && this.benchmarkURLs.length > 0 && this.benchmarkStart && this.benchmarkEnd && validationTools.isValidDateRange(this.benchmarkStart, this.benchmarkEnd) && validationTools.isValidArrayOfUrls(this.benchmarkURLs) && this.hasGoogleProfile();
     };
     Site.prototype.generateValidationFeedback = function() {
         var errors = [];
@@ -23194,7 +23213,13 @@ angular.module("onemetric.service.site", [ "ngResource", "onemetric.service.vali
         if (!validationTools.isValidArrayOfUrls(this.benchmarkURLs)) {
             errors.push("Please provide a set of valid sample URLs.");
         }
+        if (!this.hasGoogleProfile()) {
+            errors.push("Please log in to your Google account and select a profile.");
+        }
         return errors;
+    };
+    Site.prototype.hasGoogleProfile = function() {
+        return this.isGoogleAuthenticated() && this.auth && this.auth.google && this.auth.google.account && this.auth.google.account.profile;
     };
     Site.prototype.isGoogleAuthenticated = function() {
         return this.auth && this.auth.google && this.auth.google.token;
@@ -23273,6 +23298,10 @@ angular.module("onemetric.controller.report", [ "ui.bootstrap", "onemetric.servi
 angular.module("onemetric.controller.site", [ "ui.bootstrap", "daterangepicker", "onemetric.service.site", "onemetric.service.report", "onemetric.service.google" ]).controller("SiteController", [ "$window", "$scope", "$state", "$stateParams", "Site", "Report", "Google", "$uibModal", function($window, $scope, $state, $stateParams, Site, Report, Google, $uibModal) {
     var now = new Date();
     var lastWeek = new Date(now.getTime() - 864e5 * 7);
+    $scope.showHideMap = {
+        settings: true,
+        reports: true
+    };
     $scope.alerts = [];
     $scope.closeAlert = function(index) {
         $scope.alerts.splice(index, 1);
@@ -23323,6 +23352,9 @@ angular.module("onemetric.controller.site", [ "ui.bootstrap", "daterangepicker",
                 status: response.status
             });
         });
+        $scope.reports = Report.query({
+            site: $stateParams.siteId
+        });
     } else {
         $scope.site = new Site();
         document.title = "New Site";
@@ -23345,43 +23377,37 @@ angular.module("onemetric.controller.site", [ "ui.bootstrap", "daterangepicker",
         }
     };
     $scope.save = function() {
-        var errors = $scope.site.generateValidationFeedback();
-        if (errors.length > 0) {
-            $scope.alerts = [];
-            errors.forEach(function(error) {
-                $scope.alerts.push({
-                    msg: error,
-                    type: "danger"
-                });
-            });
-        } else {
-            $scope.site.$update(function() {
-                $scope.alerts = [ {
-                    msg: "Site saved!",
-                    type: "success"
-                } ];
-            });
-        }
-    };
-    $scope.runReport = function() {
-        $uibModal.open({
-            animation: true,
-            templateUrl: "/partials/reportModal.html",
-            controller: "RunReportModal",
-            size: "md",
-            resolve: {
-                site: function() {
-                    return $scope.site;
-                },
-                doneCallback: function() {
-                    return function(site) {};
-                }
-            }
+        saveSite(function() {
+            $scope.alerts = [ {
+                msg: "Site saved!",
+                type: "success"
+            } ];
         });
     };
-    $scope.showHideMap = {
-        settings: true,
-        reports: true
+    $scope.runReport = function() {
+        if ($scope.site.isValid()) {
+            saveSite(function() {
+                $uibModal.open({
+                    animation: true,
+                    templateUrl: "/partials/reportModal.html",
+                    controller: "RunReportModal",
+                    size: "md",
+                    resolve: {
+                        report: function() {
+                            return new Report({
+                                reportStart: $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportStart : site.benchmarkStart,
+                                reportEnd: $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportEnd : site.benchmarkEnd,
+                                site: $scope.site,
+                                reportURLs: $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportURLs : []
+                            });
+                        },
+                        doneCallback: function() {
+                            return function(site) {};
+                        }
+                    }
+                });
+            });
+        }
     };
     $scope.expandCollapse = function(section) {
         $scope.showHideMap[section] = !$scope.showHideMap[section];
@@ -23414,13 +23440,24 @@ angular.module("onemetric.controller.site", [ "ui.bootstrap", "daterangepicker",
             });
         }
     }
-} ]).controller("RunReportModal", [ "$scope", "$uibModalInstance", "Report", "site", "doneCallback", function($scope, $uibModalInstance, Report, site, doneCallback) {
-    $scope.report = new Report({
-        reportStart: site.benchmarkStart,
-        reportEnd: site.benchmarkEnd,
-        site: site,
-        reportURLs: []
-    });
+    function saveSite(done) {
+        $scope.alerts = [];
+        var errors = $scope.site.generateValidationFeedback();
+        if (errors.length > 0) {
+            errors.forEach(function(error) {
+                $scope.alerts.push({
+                    msg: error,
+                    type: "danger"
+                });
+            });
+        } else {
+            $scope.site.$update(function() {
+                done();
+            });
+        }
+    }
+} ]).controller("RunReportModal", [ "$scope", "$uibModalInstance", "Report", "report", "doneCallback", function($scope, $uibModalInstance, Report, report, doneCallback) {
+    $scope.report = report;
     $scope.alerts = [];
     $scope.closeAlert = function(index) {
         $scope.alerts.splice(index, 1);

@@ -32,21 +32,20 @@ schema.pre('save', function(next) {
   next();
 });
 
-schema.methods.buildReport = function(done) {
+schema.methods.buildReport = function(report,done) {
   if (this.auth && this.auth.google && this.auth.google.account) {
     var gaReporter = new GoogleAnalyticsReporter(config,this.auth.google.account.profile,this.auth.google.token);
-    var aggregateReporter = new AggregateReporter([gaReporter]);
+    var aggregateReporter = new AggregateReporter([gaReporter],{
+      'hits': 1,
+      'avgTimeOnPage': 1
+    });
     var _this = this;
-    aggregateReporter.generateReport(this.benchmarkStart,this.benchmarkEnd,this.reportStart,this.reportEnd,this.benchmarkURLs,this.reportURLs,function(err,data) {
+    aggregateReporter.generateReport(this.benchmarkStart,this.benchmarkEnd,report.reportStart,report.reportEnd,this.benchmarkURLs,report.reportURLs,function(err,data) {
       if (err) {
         done(err);
       } else {
-        var Report = mongoose.model('Report');
-        var report = new Report({
-          'averages': data.averages,
-          'data': data.reportData,
-          'site': _this._id
-        });
+        report.averages = data.averages;
+        report.data = data.reportData;
         report.save(function(err) {
           done(err,report);
         });
@@ -98,6 +97,17 @@ schema.methods.loadGoogleAccounts = function(account,property,done) {
   } else {
     done();
   }
+}
+
+schema.methods.getReports = function(done) {
+  mongoose.model('Report')
+    .find({
+      'site': this.id
+    })
+    .sort({
+      'created': -1
+    })
+    .exec(done);
 }
 
 schema.statics.getForAPI = function(req,res,next,id) {

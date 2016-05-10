@@ -13,7 +13,8 @@ var schema = new mongoose.Schema({
   'data': [
     {
       'url': String,
-      'metrics': mongoose.Schema.Types.Mixed
+      'metrics': mongoose.Schema.Types.Mixed,
+      'score': Number
     }
   ]
 });

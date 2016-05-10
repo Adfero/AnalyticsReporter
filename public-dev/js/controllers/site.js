@@ -9,6 +9,11 @@ angular.module('onemetric.controller.site', [
     var now = new Date();
     var lastWeek = new Date(now.getTime() - (86400000 * 7));
 
+    $scope.showHideMap = {
+      'settings': true,
+      'reports': true
+    };
+
     $scope.alerts = [];
     $scope.closeAlert = function(index) {
       $scope.alerts.splice(index, 1);
@@ -62,7 +67,7 @@ angular.module('onemetric.controller.site', [
       },function(response) {
         $state.go('notPermitted', {'status': response.status});
       });
-      // $scope.reports = Report.find({'site': $stateParams.siteId});
+      $scope.reports = Report.query({'site': $stateParams.siteId});
     } else {
       $scope.site = new Site();
       document.title = 'New Site';
@@ -84,48 +89,41 @@ angular.module('onemetric.controller.site', [
     }
 
     $scope.save = function() {
-      var errors = $scope.site.generateValidationFeedback();
-      if (errors.length > 0) {
-        $scope.alerts = [];
-        errors.forEach(function(error) {
-          $scope.alerts.push({
-            'msg': error,
-            'type': 'danger'
-          });
-        });
-      } else {
-        $scope.site.$update(function() {
-          $scope.alerts = [{
-            'msg': 'Site saved!',
-            'type': 'success'
-          }];
-        });
-      }
-    }
-
-    $scope.runReport = function() {
-      $uibModal.open({
-        'animation': true,
-        'templateUrl': '/partials/reportModal.html',
-        'controller': 'RunReportModal',
-        'size': 'md',
-        'resolve': {
-          'site': function() {
-            return $scope.site;
-          },
-          'doneCallback': function() {
-            return function(site) {
-
-            }
-          }
-        }
+      saveSite(function() {
+        $scope.alerts = [{
+          'msg': 'Site saved!',
+          'type': 'success'
+        }];
       });
     }
 
-    $scope.showHideMap = {
-      'settings': true,
-      'reports': true
-    };
+    $scope.runReport = function() {
+      if ($scope.site.isValid()) {
+        saveSite(function() {
+          $uibModal.open({
+            'animation': true,
+            'templateUrl': '/partials/reportModal.html',
+            'controller': 'RunReportModal',
+            'size': 'md',
+            'resolve': {
+              'report': function() {
+                return new Report({
+                  'reportStart': $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportStart : site.benchmarkStart,
+                  'reportEnd': $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportEnd : site.benchmarkEnd,
+                  'site': $scope.site,
+                  'reportURLs': $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportURLs : []
+                });;
+              },
+              'doneCallback': function() {
+                return function(site) {
+
+                }
+              }
+            }
+          });
+        });
+      }
+    }
 
     $scope.expandCollapse = function(section) {
       $scope.showHideMap[section] = !$scope.showHideMap[section];
@@ -161,20 +159,31 @@ angular.module('onemetric.controller.site', [
         });
       }
     }
+
+    function saveSite(done) {
+      $scope.alerts = [];
+      var errors = $scope.site.generateValidationFeedback();
+      if (errors.length > 0) {
+        errors.forEach(function(error) {
+          $scope.alerts.push({
+            'msg': error,
+            'type': 'danger'
+          });
+        });
+      } else {
+        $scope.site.$update(function() {
+          done()
+        });
+      }
+    }
   }])
-  .controller('RunReportModal', ['$scope', '$uibModalInstance', 'Report', 'site', 'doneCallback', function($scope, $uibModalInstance, Report, site, doneCallback) {
-    $scope.report = new Report({
-      'reportStart': site.benchmarkStart,
-      'reportEnd': site.benchmarkEnd,
-      'site': site,
-      'reportURLs': []
-    });
+  .controller('RunReportModal', ['$scope', '$uibModalInstance', 'Report', 'report', 'doneCallback', function($scope, $uibModalInstance, Report, report, doneCallback) {
+    $scope.report = report;
 
     $scope.alerts = [];
     $scope.closeAlert = function(index) {
       $scope.alerts.splice(index, 1);
     };
-
 
     $scope.datePicker = {
       'dateRange': {

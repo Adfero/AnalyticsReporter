@@ -23092,37 +23092,6 @@ angular.module("ui.bootstrap.collapse", []).directive("uibCollapse", [ "$animate
     a.put("template/typeahead/typeahead-popup.html", '<ul class="dropdown-menu" ng-show="isOpen() && !moveInProgress" ng-style="{top: position().top+\'px\', left: position().left+\'px\'}" style="display: block;" role="listbox" aria-hidden="{{!isOpen()}}">\n    <li ng-repeat="match in matches track by $index" ng-class="{active: isActive($index) }" ng-mouseenter="selectActive($index)" ng-click="selectMatch($index)" role="option" id="{{::match.id}}">\n        <div uib-typeahead-match index="$index" match="match" query="query" template-url="templateUrl"></div>\n    </li>\n</ul>\n');
 } ]), !angular.$$csp() && angular.element(document).find("head").prepend('<style type="text/css">.ng-animate.item:not(.left):not(.right){-webkit-transition:0s ease-in-out left;transition:0s ease-in-out left}</style>');
 
-angular.module("onemetric.service.google", []).factory("Google", [ "$http", function($http) {
-    return {
-        fetchAccounts: function(site, account, property, done) {
-            var object = {
-                accounts: [],
-                properties: [],
-                profiles: []
-            };
-            var params = [];
-            if (account) {
-                params.push("account=" + encodeURIComponent(account));
-            }
-            if (property) {
-                params.push("property=" + encodeURIComponent(property));
-            }
-            $http({
-                method: "GET",
-                url: "/api/site/" + site._id + "/accounts/google?" + params.join("&")
-            }).then(function(response) {
-                object.accounts = response.data.accounts;
-                object.properties = response.data.properties;
-                object.profiles = response.data.profiles;
-                done(null, object);
-            }, function(error) {
-                done(error);
-            });
-            return object;
-        }
-    };
-} ]);
-
 angular.module("onemetric.service.report", [ "ngResource", "onemetric.service.validationTools" ]).factory("Report", [ "$resource", "validationTools", function($resource, validationTools) {
     var dateFormatterInterceptor = function(response) {
         [ "reportStart", "reportEnd" ].forEach(function(prop) {
@@ -23165,7 +23134,7 @@ angular.module("onemetric.service.report", [ "ngResource", "onemetric.service.va
     return Report;
 } ]);
 
-angular.module("onemetric.service.site", [ "ngResource", "onemetric.service.validationTools" ]).factory("Site", [ "$resource", "validationTools", function($resource, validationTools) {
+angular.module("onemetric.service.site", [ "ngResource", "onemetric.service.validationTools" ]).factory("Site", [ "$resource", "$http", "validationTools", function($resource, $http, validationTools) {
     var dateFormatterInterceptor = function(response) {
         [ "benchmarkStart", "benchmarkEnd" ].forEach(function(prop) {
             if (response.resource[prop]) {
@@ -23224,6 +23193,42 @@ angular.module("onemetric.service.site", [ "ngResource", "onemetric.service.vali
     Site.prototype.isGoogleAuthenticated = function() {
         return this.auth && this.auth.google && this.auth.google.token;
     };
+    Site.prototype.fetchGoogleAccounts = function(site, account, property, done) {
+        var object = {
+            accounts: [],
+            properties: [],
+            profiles: []
+        };
+        var params = [];
+        if (account) {
+            params.push("account=" + encodeURIComponent(account));
+        }
+        if (property) {
+            params.push("property=" + encodeURIComponent(property));
+        }
+        $http({
+            method: "GET",
+            url: "/api/site/" + this._id + "/accounts/google?" + params.join("&")
+        }).then(function(response) {
+            object.accounts = response.data.accounts;
+            object.properties = response.data.properties;
+            object.profiles = response.data.profiles;
+            done(null, object);
+        }, function(error) {
+            done(error);
+        });
+        return object;
+    };
+    Site.prototype.findURLs = function(done) {
+        $http({
+            method: "GET",
+            url: "/api/site/" + this._id + "/urls?sitemapPath=" + encodeURIComponent(this.sitemapPath)
+        }).then(function(response) {
+            done(null, response.data);
+        }, function(error) {
+            done(error);
+        });
+    };
     return Site;
 } ]);
 
@@ -23248,6 +23253,7 @@ angular.module("onemetric.service.validationTools", []).factory("validationTools
 } ]);
 
 angular.module("onemetric.controller.app", [ "ui.bootstrap", "daterangepicker", "onemetric.service.site" ]).controller("AppController", [ "$window", "$scope", "$state", "$stateParams", "$uibModal", "Site", function($window, $scope, $state, $stateParams, $uibModal, Site) {
+    $scope.$state = $state;
     $scope.sites = Site.query();
     $scope.addSite = function() {
         $uibModal.open({
@@ -23288,6 +23294,10 @@ angular.module("onemetric.controller.report", [ "ui.bootstrap", "onemetric.servi
         id: $stateParams.reportId
     }, function() {
         document.title = "Report";
+        $scope.metrics = [];
+        for (var metric in $scope.report.averages) {
+            $scope.metrics.push(metric);
+        }
     }, function(response) {
         $state.go("notPermitted", {
             status: response.status
@@ -23295,166 +23305,57 @@ angular.module("onemetric.controller.report", [ "ui.bootstrap", "onemetric.servi
     });
 } ]);
 
-angular.module("onemetric.controller.site", [ "ui.bootstrap", "daterangepicker", "onemetric.service.site", "onemetric.service.report", "onemetric.service.google" ]).controller("SiteController", [ "$window", "$scope", "$state", "$stateParams", "Site", "Report", "Google", "$uibModal", function($window, $scope, $state, $stateParams, Site, Report, Google, $uibModal) {
-    var now = new Date();
-    var lastWeek = new Date(now.getTime() - 864e5 * 7);
-    $scope.showHideMap = {
-        settings: true,
-        reports: true
-    };
+angular.module("onemetric.controller.site", [ "ui.bootstrap", "daterangepicker", "onemetric.service.site", "onemetric.service.report" ]).controller("SiteController", [ "$window", "$scope", "$state", "$stateParams", "Site", "Report", "$uibModal", function($window, $scope, $state, $stateParams, Site, Report, $uibModal) {
     $scope.alerts = [];
     $scope.closeAlert = function(index) {
         $scope.alerts.splice(index, 1);
     };
-    $scope.datePicker = {
-        benchmarkDates: {
-            startDate: lastWeek,
-            endDate: now
-        }
-    };
-    $scope.benchmarkURLsString = function(urls) {
-        if ($scope.site && typeof urls != "undefined") {
-            $scope.site.benchmarkURLs = urls.split("\n");
-        }
-        return $scope.site && $scope.site.benchmarkURLs ? $scope.site.benchmarkURLs.join("\n") : "";
-    };
-    $scope.$watch("datePicker.benchmarkDates.startDate", function() {
-        $scope.site.benchmarkStart = new Date($scope.datePicker.benchmarkDates.startDate);
-    });
-    $scope.$watch("datePicker.benchmarkDates.endDate", function() {
-        $scope.site.benchmarkEnd = new Date($scope.datePicker.benchmarkDates.endDate);
-    });
     if ($stateParams.siteId) {
         $scope.site = Site.get({
             id: $stateParams.siteId
         }, function() {
-            document.title = $scope.site.name;
-            $scope.site.benchmarkStart = $scope.datePicker.benchmarkDates.startDate = $scope.site.benchmarkStart || lastWeek;
-            $scope.site.benchmarkEnd = $scope.datePicker.benchmarkDates.endDate = $scope.site.benchmarkEnd || now;
-            loadGoogleAccounts(function() {
-                setTimeout(function() {
-                    $scope.$watch("site.auth.google.account.account", function() {
-                        if ($scope.site && $scope.site.auth && $scope.site.auth.google && $scope.site.auth.google.account) {
-                            $scope.site.auth.google.account.property = null;
-                        }
-                        loadGoogleAccounts();
-                    });
-                    $scope.$watch("site.auth.google.account.property", function() {
-                        if ($scope.site && $scope.site.auth && $scope.site.auth.google && $scope.site.auth.google.account) {
-                            $scope.site.auth.google.account.profile = null;
-                        }
-                        loadGoogleAccounts();
-                    });
-                }, 500);
-            });
-        }, function(response) {
-            $state.go("notPermitted", {
-                status: response.status
-            });
+            document.title = $scope.site.name + " | One Metric";
+            if (!$scope.site.isValid()) {
+                $scope.alerts.push({
+                    msg: "The settings for this site are invalid. Please check its settings before running a report.",
+                    type: "danger"
+                });
+            }
         });
+        loadReports();
+    }
+    $scope.runReport = function() {
+        if ($scope.site.isValid()) {
+            $uibModal.open({
+                animation: true,
+                templateUrl: "/partials/reportModal.html",
+                controller: "RunReportModal",
+                size: "md",
+                resolve: {
+                    report: function() {
+                        return new Report({
+                            reportStart: $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportStart : $scope.site.benchmarkStart,
+                            reportEnd: $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportEnd : $scope.site.benchmarkEnd,
+                            site: $scope.site,
+                            reportURLs: $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportURLs : []
+                        });
+                    },
+                    doneCallback: function() {
+                        return function(report) {
+                            loadReports();
+                        };
+                    }
+                }
+            });
+        }
+    };
+    $scope.downloadLink = function(report) {
+        return "/api/report/" + report._id + "/csv";
+    };
+    function loadReports() {
         $scope.reports = Report.query({
             site: $stateParams.siteId
         });
-    } else {
-        $scope.site = new Site();
-        document.title = "New Site";
-    }
-    $scope.disableSaveButton = function() {
-        return !$scope.site.isValid();
-    };
-    $scope.generateReport = function() {
-        if ($scope.site._id) {
-            $scope.site.$update(function() {
-                var report = new Report({
-                    site: $scope.site._id
-                });
-                report.$save(function() {
-                    $state.go("report", {
-                        reportId: report._id
-                    });
-                });
-            });
-        }
-    };
-    $scope.save = function() {
-        saveSite(function() {
-            $scope.alerts = [ {
-                msg: "Site saved!",
-                type: "success"
-            } ];
-        });
-    };
-    $scope.runReport = function() {
-        if ($scope.site.isValid()) {
-            saveSite(function() {
-                $uibModal.open({
-                    animation: true,
-                    templateUrl: "/partials/reportModal.html",
-                    controller: "RunReportModal",
-                    size: "md",
-                    resolve: {
-                        report: function() {
-                            return new Report({
-                                reportStart: $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportStart : site.benchmarkStart,
-                                reportEnd: $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportEnd : site.benchmarkEnd,
-                                site: $scope.site,
-                                reportURLs: $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportURLs : []
-                            });
-                        },
-                        doneCallback: function() {
-                            return function(site) {};
-                        }
-                    }
-                });
-            });
-        }
-    };
-    $scope.expandCollapse = function(section) {
-        $scope.showHideMap[section] = !$scope.showHideMap[section];
-    };
-    $scope.getExpandCollapseArrow = function(section) {
-        return $scope.showHideMap[section] ? "top" : "bottom";
-    };
-    $scope.showHide = function(section) {
-        return $scope.showHideMap[section];
-    };
-    function loadGoogleAccounts(done) {
-        if ($scope.site && $scope.site.auth && $scope.site.auth.google) {
-            var account = $scope.site.auth.google.account ? $scope.site.auth.google.account.account : null;
-            var property = $scope.site.auth.google.account ? $scope.site.auth.google.account.property : null;
-            Google.fetchAccounts($scope.site, account, property, function(err, data) {
-                if (err) {
-                    $scope.site.auth.google = null;
-                } else {
-                    if (!$scope.google) {
-                        $scope.google = data;
-                    }
-                    if (account) {
-                        $scope.google.properties = data.properties;
-                    }
-                    if (property) {
-                        $scope.google.profiles = data.profiles;
-                    }
-                }
-                done && done();
-            });
-        }
-    }
-    function saveSite(done) {
-        $scope.alerts = [];
-        var errors = $scope.site.generateValidationFeedback();
-        if (errors.length > 0) {
-            errors.forEach(function(error) {
-                $scope.alerts.push({
-                    msg: error,
-                    type: "danger"
-                });
-            });
-        } else {
-            $scope.site.$update(function() {
-                done();
-            });
-        }
     }
 } ]).controller("RunReportModal", [ "$scope", "$uibModalInstance", "Report", "report", "doneCallback", function($scope, $uibModalInstance, Report, report, doneCallback) {
     $scope.report = report;
@@ -23500,11 +23401,147 @@ angular.module("onemetric.controller.site", [ "ui.bootstrap", "daterangepicker",
             });
         }
     };
+} ]).controller("SiteSettingsController", [ "$window", "$scope", "$state", "$stateParams", "Site", "$uibModal", function($window, $scope, $state, $stateParams, Site, $uibModal) {
+    $scope.alerts = [];
+    $scope.closeAlert = function(index) {
+        $scope.alerts.splice(index, 1);
+    };
+    var now = new Date();
+    var lastWeek = new Date(now.getTime() - 864e5 * 7);
+    $scope.datePicker = {
+        benchmarkDates: {
+            startDate: lastWeek,
+            endDate: now
+        }
+    };
+    $scope.benchmarkURLsString = function(urls) {
+        if ($scope.site && typeof urls != "undefined") {
+            $scope.site.benchmarkURLs = urls.split("\n");
+        }
+        return $scope.site && $scope.site.benchmarkURLs ? $scope.site.benchmarkURLs.join("\n") : "";
+    };
+    $scope.$watch("datePicker.benchmarkDates.startDate", function() {
+        $scope.site.benchmarkStart = new Date($scope.datePicker.benchmarkDates.startDate);
+    });
+    $scope.$watch("datePicker.benchmarkDates.endDate", function() {
+        $scope.site.benchmarkEnd = new Date($scope.datePicker.benchmarkDates.endDate);
+    });
+    if ($stateParams.siteId) {
+        $scope.site = Site.get({
+            id: $stateParams.siteId
+        }, function() {
+            document.title = $scope.site.name + " Settings | One Metric";
+            $scope.site.benchmarkStart = $scope.datePicker.benchmarkDates.startDate = $scope.site.benchmarkStart || lastWeek;
+            $scope.site.benchmarkEnd = $scope.datePicker.benchmarkDates.endDate = $scope.site.benchmarkEnd || now;
+            loadGoogleAccounts(function() {
+                setTimeout(function() {
+                    $scope.$watch("site.auth.google.account.account", function() {
+                        if ($scope.site && $scope.site.auth && $scope.site.auth.google && $scope.site.auth.google.account) {
+                            $scope.site.auth.google.account.property = null;
+                        }
+                        loadGoogleAccounts();
+                    });
+                    $scope.$watch("site.auth.google.account.property", function() {
+                        if ($scope.site && $scope.site.auth && $scope.site.auth.google && $scope.site.auth.google.account) {
+                            $scope.site.auth.google.account.profile = null;
+                        }
+                        loadGoogleAccounts();
+                    });
+                }, 500);
+            });
+        }, function(response) {
+            $state.go("notPermitted", {
+                status: response.status
+            });
+        });
+    }
+    $scope.findURLs = function() {
+        $uibModal.open({
+            animation: true,
+            templateUrl: "/partials/findURLsModal.html",
+            controller: "FindURLsModal",
+            size: "lg",
+            resolve: {
+                site: function() {
+                    return $scope.site;
+                },
+                doneCallback: function() {
+                    return function(urls) {};
+                }
+            }
+        });
+    };
+    $scope.save = function() {
+        $scope.alerts = [];
+        var errors = $scope.site.generateValidationFeedback();
+        if (errors.length > 0) {
+            errors.forEach(function(error) {
+                $scope.alerts.push({
+                    msg: error,
+                    type: "danger"
+                });
+            });
+        } else {
+            $scope.site.$update(function() {
+                $state.go("app.site", {
+                    siteId: $scope.site._id
+                });
+            });
+        }
+    };
+    function loadGoogleAccounts(done) {
+        if ($scope.site && $scope.site.auth && $scope.site.auth.google) {
+            var account = $scope.site.auth.google.account ? $scope.site.auth.google.account.account : null;
+            var property = $scope.site.auth.google.account ? $scope.site.auth.google.account.property : null;
+            $scope.site.fetchGoogleAccounts($scope.site, account, property, function(err, data) {
+                if (err) {
+                    $scope.site.auth.google = null;
+                } else {
+                    if (!$scope.google) {
+                        $scope.google = data;
+                    }
+                    if (account) {
+                        $scope.google.properties = data.properties;
+                    }
+                    if (property) {
+                        $scope.google.profiles = data.profiles;
+                    }
+                }
+                done && done();
+            });
+        }
+    }
+} ]).controller("FindURLsModal", [ "$scope", "$uibModalInstance", "site", "doneCallback", function($scope, $uibModalInstance, site, doneCallback) {
+    $scope.site = site;
+    $scope.alerts = [];
+    $scope.findURLs = function() {
+        $scope.site.findURLs(function(err, urls) {
+            if (err) {
+                $scope.alerts.push({
+                    msg: "There was an error fetching URLs for this site.",
+                    type: "danger"
+                });
+            } else {
+                $scope.urls = urls;
+            }
+        });
+    };
+    $scope.cancel = function() {
+        $uibModalInstance.dismiss("cancel");
+    };
 } ]);
 
 var app = angular.module("onemetric", [ "ui.router", "onemetric.controller.app", "onemetric.controller.site", "onemetric.controller.report" ]);
 
-angular.module("onemetric").config([ "$stateProvider", function($stateProvider) {
+angular.module("onemetric").filter("metric", function() {
+    return function(input) {
+        var map = {
+            hits: "Hits",
+            avgTimeOnPage: "Average Time on Page"
+        };
+        return map[input] ? map[input] : input;
+    };
+}).config([ "$stateProvider", function($stateProvider) {
     $stateProvider.state("notPermitted", {
         params: {
             status: 404
@@ -23521,8 +23558,12 @@ angular.module("onemetric").config([ "$stateProvider", function($stateProvider) 
         url: "site/:siteId",
         templateUrl: "/partials/site.html",
         controller: "SiteController"
-    }).state("report", {
-        url: "/report/:reportId",
+    }).state("app.siteSettings", {
+        url: "site/:siteId/settings",
+        templateUrl: "/partials/siteSettings.html",
+        controller: "SiteSettingsController"
+    }).state("app.report", {
+        url: "site/:siteId/report/:reportId",
         templateUrl: "/partials/report.html",
         controller: "ReportController"
     });

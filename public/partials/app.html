@@ -1,7 +1,7 @@
 <nav class="navbar navbar-inverse navbar-fixed-top">
   <div class="container-fluid">
     <div class="navbar-header">
-      <a class="navbar-brand" href="/">One Metric</a>
+      <a class="navbar-brand" ui-sref="app">One Metric</a>
     </div>
     <div id="navbar" class="navbar-collapse collapse">
       <div class="navbar-form navbar-right">
@@ -19,7 +19,7 @@
     <div class="col-sm-3 col-md-2 sidebar">
       <h3>Sites</h3>
       <ul class="nav nav-sidebar">
-        <li ng-repeat="site in sites" ui-sref-active="active">
+        <li ng-repeat="site in sites" ng-class="{active: $state.includes('app.site',{'siteId': site._id}) || $state.includes('app.siteSettings',{'siteId': site._id}) || $state.includes('app.report',{'siteId': site._id})}">
           <a ui-sref="app.site({siteId: site._id})">{{ site.name }}</a>
         </li>
         <li>

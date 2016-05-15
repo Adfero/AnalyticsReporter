@@ -1,101 +1,44 @@
+<ol class="breadcrumb">
+  <li class="active">{{ site.name }}</li>
+</ol>
 <h1 class="page-header">{{ site.name }}</h1>
-<div class="panel panel-default">
-  <div class="panel-heading">
+<uib-alert ng-repeat="alert in alerts" type="{{alert.type}}" close="closeAlert($index)">{{alert.msg}}</uib-alert>
+<div class="btn-group" role="group">
+  <button class="btn btn-success" ng-click="runReport()" ng-disabled="!site.isValid()">
+    <span class="glyphicon glyphicon-signal"></span>
+    Run Report
+  </button>
+  <a ui-sref="app.siteSettings({siteId: site._id})" class="btn btn-primary">
+    <span class="glyphicon glyphicon-certificate"></span>
     Settings
-    <button class="btn btn-xs btn-info pull-right" ng-click="expandCollapse('settings')">
-      <span class="glyphicon glyphicon-triangle-{{ getExpandCollapseArrow('settings') }}"></span>
-      <span class="sr-only">Expand/Collapse</span>
-    </button>
-  </div>
-  <div class="panel-body" ng-show="showHide('settings')">
-    <uib-alert ng-repeat="alert in alerts" type="{{alert.type}}" close="closeAlert($index)">{{alert.msg}}</uib-alert>
-    <form>
-      <div class="row">
-        <div class="col-sm-4">
-          <fieldset>
-            <legend>Report Info</legend>
-            <div class="form-group">
-              <label for="name">Name</label>
-              <input class="form-control" id="name" name="name" type="text" ng-model="site.name" placeholder="Site Name" />
-            </div>
-            <div class="form-group">
-              <label for="url">URL</label>
-              <input class="form-control" id="url" name="url" type="text" ng-model="site.url" placeholder="http://" />
-            </div>
-          </fieldset>
-        </div>
-        <div class="col-sm-4">
-          <fieldset>
-            <legend>Accounts</legend>
-            <p ng-show="!site.isGoogleAuthenticated()">
-              <a href="/auth/{{ site._id }}/google" class="btn btn-primary">Authenticate Google</a>
-            </p>
-            <div class="form-group" ng-show="site.isGoogleAuthenticated()">
-              <label>Google Account</label>
-              <select
-                class="form-control"
-                ng-model="site.auth.google.account.account"
-                ng-options="account.id as account.name for account in google.accounts"></select>
-            </div>
-            <div class="form-group" ng-show="site.isGoogleAuthenticated()">
-              <label>Google Property</label>
-              <select
-                class="form-control"
-                ng-model="site.auth.google.account.property"
-                ng-options="property.id as property.name for property in google.properties"></select>
-            </div>
-            <div class="form-group" ng-show="site.isGoogleAuthenticated()">
-              <label>Google Profile</label>
-              <select
-                class="form-control"
-                ng-model="site.auth.google.account.profile"
-                ng-options="profile.id as profile.name for profile in google.profiles"></select>
-            </div>
-          </fieldset>
-        </div>
-        <div class="col-sm-4">
-          <fieldset>
-            <legend>Benchmarking</legend>
-            <div class="form-group">
-              <label for="benchmarkDates">Date Range</label>
-              <input date-range-picker class="form-control date-picker" id="benchmarkDates" type="text" ng-model="datePicker.benchmarkDates" />
-            </div>
-            <div class="form-group">
-              <label for="benchmarkURLs">Sample URLs</label>
-              <textarea rows="5" class="form-control" id="benchmarkURLs" name="benchmarkURLs" type="text" ng-model="benchmarkURLsString" ng-model-options="{ getterSetter: true }"></textarea>
-            </div>
-          </fieldset>
-        </div>
-      </div>
-      <button class="btn btn-primary" ng-click="save()">Save</button>
-    </form>
-  </div>
+  </a>
 </div>
-<div class="panel panel-default">
-  <div class="panel-heading">
-    Reports
-    <button class="btn btn-xs btn-info pull-right" ng-click="expandCollapse('reports')">
-      <span class="glyphicon glyphicon-triangle-{{ getExpandCollapseArrow('reports') }}"></span>
-      <span class="sr-only">Expand/Collapse</span>
-    </button>
-  </div>
-  <div class="panel-body" ng-show="showHide('reports')">
-    <button class="btn btn-success" ng-click="runReport()" ng-disabled="!site.isValid()">Run Report</button>
-    <table class="table table-striped">
-      <thead>
-        <tr>
-          <th>Start Date</th>
-          <th>End Date</th>
-          <th>URLs</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr ng-repeat="report in reports">
-          <td>{{ report.reportStart | date:'yyyy-MM-dd' }}</td>
-          <td>{{ report.reportEnd | date:'yyyy-MM-dd' }}</td>
-          <td>{{ report.getReportURLsSummary() }}</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</div>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Start Date</th>
+      <th>End Date</th>
+      <th>URLs</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr ng-repeat="report in reports">
+      <td>{{ report.reportStart | date:'yyyy-MM-dd' }}</td>
+      <td>{{ report.reportEnd | date:'yyyy-MM-dd' }}</td>
+      <td>{{ report.getReportURLsSummary() }}</td>
+      <td>
+        <div class="btn-group pull-right" role="group">
+          <a ui-sref="app.report({siteId: site._id, reportId: report._id})" class="btn btn-success btn-xs">
+            <span class="glyphicon glyphicon-list-alt"></span>
+            View
+          </a>
+          <a href="{{ downloadLink(report) }}" class="btn btn-primary btn-xs">
+            <span class="glyphicon glyphicon-download"></span>
+            Download
+          </a>
+        </div>
+      </td>
+    </tr>
+  </tbody>
+</table>

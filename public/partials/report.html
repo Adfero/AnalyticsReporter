@@ -1,0 +1,47 @@
+<ol class="breadcrumb">
+  <li><a ui-sref="app.site({siteId: report.site._id})">{{ report.site.name }}</a></li>
+  <li class="active">Report</li>
+</ol>
+
+<h1 class="page-header">
+  {{ report.site.name }} Report
+  <small>{{ report.reportStart | date:'yyyy-MM-dd' }} to {{ report.reportEnd | date:'yyyy-MM-dd' }}</small>
+</h1>
+
+<h2>Scores</h2>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>URL</th>
+      <th>Score</th>
+      <th ng-repeat="metric in metrics">
+        {{ metric | metric }}
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr ng-repeat="row in report.data">
+      <td>{{ row.url }}</td>
+      <td>{{ row.score | number:2 }}</td>
+      <td ng-repeat="metric in metrics">
+        {{ row.metrics[metric] }}
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Averages</h2>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>Metric</th>
+      <th>Average</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr ng-repeat="metric in metrics">
+      <td>{{ metric | metric }}</td>
+      <td>{{ report.averages[metric] }}</td>
+    </tr>
+  </tbody>
+</table>

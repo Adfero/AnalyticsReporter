@@ -4,6 +4,7 @@ angular.module('onemetric.controller.app', [
   'onemetric.service.site'
 ])
   .controller('AppController', ['$window', '$scope', '$state', '$stateParams', '$uibModal', 'Site', function($window, $scope, $state, $stateParams, $uibModal, Site) {
+    $scope.$state = $state;
     $scope.sites = Site.query();
     $scope.addSite = function() {
       $uibModal.open({

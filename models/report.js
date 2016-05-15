@@ -24,8 +24,14 @@ schema.statics.getForAPI = function(req,res,next,id) {
     if (err) {
       next(err);
     } else if (object) {
-      req.report = object;
-      next();
+      object.populate('site',function(err) {
+        if (err) {
+          next(err);
+        } else {
+          req.report = object;
+          next();
+        }
+      })
     } else {
       res.sendStatus(404);
     }

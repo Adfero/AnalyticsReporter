@@ -2,179 +2,59 @@ angular.module('onemetric.controller.site', [
   'ui.bootstrap',
   'daterangepicker',
   'onemetric.service.site',
-  'onemetric.service.report',
-  'onemetric.service.google'
+  'onemetric.service.report'
 ])
-  .controller('SiteController', ['$window', '$scope', '$state', '$stateParams', 'Site', 'Report', 'Google', '$uibModal', function($window, $scope, $state, $stateParams, Site, Report, Google, $uibModal) {
-    var now = new Date();
-    var lastWeek = new Date(now.getTime() - (86400000 * 7));
-
-    $scope.showHideMap = {
-      'settings': true,
-      'reports': true
-    };
-
+  .controller('SiteController', ['$window', '$scope', '$state', '$stateParams', 'Site', 'Report', '$uibModal', function($window, $scope, $state, $stateParams, Site, Report, $uibModal) {
     $scope.alerts = [];
     $scope.closeAlert = function(index) {
       $scope.alerts.splice(index, 1);
     };
 
-    $scope.datePicker = {
-      'benchmarkDates': {
-        'startDate': lastWeek,
-        'endDate': now
-      }
-    };
-
-    $scope.benchmarkURLsString = function(urls) {
-      if ($scope.site && typeof urls != 'undefined') {
-        $scope.site.benchmarkURLs = urls.split('\n');
-      }
-      return $scope.site && $scope.site.benchmarkURLs ? $scope.site.benchmarkURLs.join('\n') : '';
-    }
-
-    $scope.$watch('datePicker.benchmarkDates.startDate',function() {
-      $scope.site.benchmarkStart = new Date($scope.datePicker.benchmarkDates.startDate);
-    });
-    $scope.$watch('datePicker.benchmarkDates.endDate',function() {
-      $scope.site.benchmarkEnd = new Date($scope.datePicker.benchmarkDates.endDate);
-    });
-
     if ($stateParams.siteId) {
       $scope.site = Site.get({'id': $stateParams.siteId},function() {
-        document.title = $scope.site.name;
-
-        $scope.site.benchmarkStart = $scope.datePicker.benchmarkDates.startDate = $scope.site.benchmarkStart || lastWeek;
-        $scope.site.benchmarkEnd = $scope.datePicker.benchmarkDates.endDate = $scope.site.benchmarkEnd || now;
-
-        loadGoogleAccounts(function() {
-          setTimeout(function() {
-            $scope.$watch('site.auth.google.account.account',function() {
-              if ($scope.site && $scope.site.auth && $scope.site.auth.google && $scope.site.auth.google.account) {
-                $scope.site.auth.google.account.property = null;
-              }
-              loadGoogleAccounts();
-            });
-            $scope.$watch('site.auth.google.account.property',function() {
-              if ($scope.site && $scope.site.auth && $scope.site.auth.google && $scope.site.auth.google.account) {
-                $scope.site.auth.google.account.profile = null;
-              }
-              loadGoogleAccounts();
-            });
-          },500)
-        });
-
-      },function(response) {
-        $state.go('notPermitted', {'status': response.status});
-      });
-      $scope.reports = Report.query({'site': $stateParams.siteId});
-    } else {
-      $scope.site = new Site();
-      document.title = 'New Site';
-    }
-
-    $scope.disableSaveButton = function() {
-      return !$scope.site.isValid();
-    }
-
-    $scope.generateReport = function() {
-      if ($scope.site._id) {
-        $scope.site.$update(function() {
-          var report = new Report({'site': $scope.site._id});
-          report.$save(function() {
-            $state.go('report',{'reportId': report._id});
+        document.title = $scope.site.name + ' | One Metric';
+        if (!$scope.site.isValid()) {
+          $scope.alerts.push({
+            'msg': 'The settings for this site are invalid. Please check its settings before running a report.',
+            'type': 'danger'
           });
-        });
-      }
-    }
-
-    $scope.save = function() {
-      saveSite(function() {
-        $scope.alerts = [{
-          'msg': 'Site saved!',
-          'type': 'success'
-        }];
+        }
       });
+      loadReports();
     }
 
     $scope.runReport = function() {
       if ($scope.site.isValid()) {
-        saveSite(function() {
-          $uibModal.open({
-            'animation': true,
-            'templateUrl': '/partials/reportModal.html',
-            'controller': 'RunReportModal',
-            'size': 'md',
-            'resolve': {
-              'report': function() {
-                return new Report({
-                  'reportStart': $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportStart : site.benchmarkStart,
-                  'reportEnd': $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportEnd : site.benchmarkEnd,
-                  'site': $scope.site,
-                  'reportURLs': $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportURLs : []
-                });;
-              },
-              'doneCallback': function() {
-                return function(site) {
-
-                }
+        $uibModal.open({
+          'animation': true,
+          'templateUrl': '/partials/reportModal.html',
+          'controller': 'RunReportModal',
+          'size': 'md',
+          'resolve': {
+            'report': function() {
+              return new Report({
+                'reportStart': $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportStart : $scope.site.benchmarkStart,
+                'reportEnd': $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportEnd : $scope.site.benchmarkEnd,
+                'site': $scope.site,
+                'reportURLs': $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportURLs : []
+              });;
+            },
+            'doneCallback': function() {
+              return function(report) {
+                loadReports();
               }
             }
-          });
-        });
-      }
-    }
-
-    $scope.expandCollapse = function(section) {
-      $scope.showHideMap[section] = !$scope.showHideMap[section];
-    }
-
-    $scope.getExpandCollapseArrow = function(section) {
-      return $scope.showHideMap[section] ? 'top' : 'bottom';
-    }
-
-    $scope.showHide = function(section) {
-      return $scope.showHideMap[section];
-    }
-
-    function loadGoogleAccounts(done) {
-      if ($scope.site && $scope.site.auth && $scope.site.auth.google) {
-        var account = $scope.site.auth.google.account ? $scope.site.auth.google.account.account : null;
-        var property = $scope.site.auth.google.account ? $scope.site.auth.google.account.property : null;
-        Google.fetchAccounts($scope.site,account,property,function(err,data) {
-          if (err) {
-            $scope.site.auth.google = null;
-          } else {
-            if (!$scope.google) {
-              $scope.google = data;
-            }
-            if (account) {
-              $scope.google.properties = data.properties;
-            }
-            if (property) {
-              $scope.google.profiles = data.profiles;
-            }
           }
-          done && done();
         });
       }
     }
 
-    function saveSite(done) {
-      $scope.alerts = [];
-      var errors = $scope.site.generateValidationFeedback();
-      if (errors.length > 0) {
-        errors.forEach(function(error) {
-          $scope.alerts.push({
-            'msg': error,
-            'type': 'danger'
-          });
-        });
-      } else {
-        $scope.site.$update(function() {
-          done()
-        });
-      }
+    $scope.downloadLink = function(report) {
+      return '/api/report/' + report._id + '/csv';
+    }
+
+    function loadReports() {
+      $scope.reports = Report.query({'site': $stateParams.siteId});
     }
   }])
   .controller('RunReportModal', ['$scope', '$uibModalInstance', 'Report', 'report', 'doneCallback', function($scope, $uibModalInstance, Report, report, doneCallback) {
@@ -227,4 +107,154 @@ angular.module('onemetric.controller.site', [
         });
       }
     };
+  }])
+  .controller('SiteSettingsController', ['$window', '$scope', '$state', '$stateParams', 'Site', '$uibModal', function($window, $scope, $state, $stateParams, Site, $uibModal) {
+    $scope.alerts = [];
+    $scope.closeAlert = function(index) {
+      $scope.alerts.splice(index, 1);
+    };
+
+    var now = new Date();
+    var lastWeek = new Date(now.getTime() - (86400000 * 7));
+
+    $scope.datePicker = {
+      'benchmarkDates': {
+        'startDate': lastWeek,
+        'endDate': now
+      }
+    };
+
+    $scope.benchmarkURLsString = function(urls) {
+      if ($scope.site && typeof urls != 'undefined') {
+        $scope.site.benchmarkURLs = urls.split('\n');
+      }
+      return $scope.site && $scope.site.benchmarkURLs ? $scope.site.benchmarkURLs.join('\n') : '';
+    }
+
+    $scope.$watch('datePicker.benchmarkDates.startDate',function() {
+      $scope.site.benchmarkStart = new Date($scope.datePicker.benchmarkDates.startDate);
+    });
+    $scope.$watch('datePicker.benchmarkDates.endDate',function() {
+      $scope.site.benchmarkEnd = new Date($scope.datePicker.benchmarkDates.endDate);
+    });
+
+    if ($stateParams.siteId) {
+      $scope.site = Site.get({'id': $stateParams.siteId},function() {
+        document.title = $scope.site.name + ' Settings | One Metric';
+
+        $scope.site.benchmarkStart = $scope.datePicker.benchmarkDates.startDate = $scope.site.benchmarkStart || lastWeek;
+        $scope.site.benchmarkEnd = $scope.datePicker.benchmarkDates.endDate = $scope.site.benchmarkEnd || now;
+
+        loadGoogleAccounts(function() {
+          setTimeout(function() {
+            $scope.$watch('site.auth.google.account.account',function() {
+              if ($scope.site && $scope.site.auth && $scope.site.auth.google && $scope.site.auth.google.account) {
+                $scope.site.auth.google.account.property = null;
+              }
+              loadGoogleAccounts();
+            });
+            $scope.$watch('site.auth.google.account.property',function() {
+              if ($scope.site && $scope.site.auth && $scope.site.auth.google && $scope.site.auth.google.account) {
+                $scope.site.auth.google.account.profile = null;
+              }
+              loadGoogleAccounts();
+            });
+          },500)
+        });
+
+      },function(response) {
+        $state.go('notPermitted', {'status': response.status});
+      });
+    }
+
+    $scope.findURLs = function() {
+      $uibModal.open({
+        'animation': true,
+        'templateUrl': '/partials/findURLsModal.html',
+        'controller': 'FindURLsModal',
+        'size': 'lg',
+        'resolve': {
+          'site': function() {
+            return $scope.site;
+          },
+          'doneCallback': function() {
+            return function(urls) {
+              //TODO
+            }
+          }
+        }
+      });
+    }
+
+    $scope.save = function() {
+      $scope.alerts = [];
+      var errors = $scope.site.generateValidationFeedback();
+      if (errors.length > 0) {
+        errors.forEach(function(error) {
+          $scope.alerts.push({
+            'msg': error,
+            'type': 'danger'
+          });
+        });
+      } else {
+        $scope.site.$update(function() {
+          $state.go('app.site', {'siteId': $scope.site._id});
+        });
+      }
+    }
+
+    function loadGoogleAccounts(done) {
+      if ($scope.site && $scope.site.auth && $scope.site.auth.google) {
+        var account = $scope.site.auth.google.account ? $scope.site.auth.google.account.account : null;
+        var property = $scope.site.auth.google.account ? $scope.site.auth.google.account.property : null;
+        $scope.site.fetchGoogleAccounts($scope.site,account,property,function(err,data) {
+          if (err) {
+            $scope.site.auth.google = null;
+          } else {
+            if (!$scope.google) {
+              $scope.google = data;
+            }
+            if (account) {
+              $scope.google.properties = data.properties;
+            }
+            if (property) {
+              $scope.google.profiles = data.profiles;
+            }
+          }
+          done && done();
+        });
+      }
+    }
+  }])
+  .controller('FindURLsModal', ['$scope', '$uibModalInstance', 'site', 'doneCallback', function($scope, $uibModalInstance, site, doneCallback) {
+    $scope.site = site;
+    $scope.alerts = [];
+
+    $scope.findURLs = function() {
+      $scope.site.findURLs(function(err,urls) {
+        if (err) {
+          $scope.alerts.push({
+            'msg': 'There was an error fetching URLs for this site.',
+            'type': 'danger'
+          });
+        } else {
+          $scope.urls = urls;
+        }
+      })
+    }
+
+    $scope.cancel = function() {
+      $uibModalInstance.dismiss('cancel');
+    };
+
+    // $scope.invalidInput = function() {
+    //   return !$scope.site.isValid();
+    // };
+    //
+    // $scope.add = function() {
+    //   $scope.site.$save(function() {
+    //     $uibModalInstance.close();
+    //     doneCallback($scope.site);
+    //   });
+    // };
   }]);

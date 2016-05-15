@@ -43,16 +43,13 @@ exports.finishGoogle = function(req,res,next) {
               if (!req.site.auth) {
                 req.site.auth = {};
               }
-              var account = {};
-              if (req.site.auth.google && req.site.auth.google.account) {
-                account = req.site.auth.google.account;
+              if (!req.site.auth.google) {
+                req.site.auth.google = {};
               }
-              req.site.auth.google = {
-                'token': accessToken,
-                'refresh': refreshToken,
-                'expires': new Date(now + (params['expires_in'] * 1000)),
-                'account': account
-              };
+              req.site.auth.google.token = accessToken;
+              req.site.auth.google.refresh = refreshToken;
+              req.site.auth.google.expires = new Date(now + (params['expires_in'] * 1000));
+              req.site.auth.google.token = accessToken;
               wrapCallback(req,res,next);
             }
           }
@@ -76,7 +73,7 @@ function wrapCallback(req,res,next) {
     if (err) {
       next(err);
     } else {
-      res.redirect('/#/site/' + req.site._id);
+      res.redirect('/#/site/' + req.site._id + '/settings');
     }
   })
 }

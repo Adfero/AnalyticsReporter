@@ -2,7 +2,7 @@ angular.module('onemetric.service.site', [
   'ngResource',
   'onemetric.service.validationTools'
 ])
-  .factory('Site', ['$resource', 'validationTools', function($resource, validationTools) {
+  .factory('Site', ['$resource', '$http', 'validationTools', function($resource, $http, validationTools) {
     var dateFormatterInterceptor = function (response) {
       ['benchmarkStart','benchmarkEnd'].forEach(function(prop) {
         if (response.resource[prop]) {
@@ -10,7 +10,7 @@ angular.module('onemetric.service.site', [
         }
       });
       return response;
-    }
+    };
 
     var Site = $resource('/api/site/:id', { id: '@_id' }, {
       'update': {
@@ -71,10 +71,54 @@ angular.module('onemetric.service.site', [
 
     Site.prototype.hasGoogleProfile = function() {
       return this.isGoogleAuthenticated() && this.auth && this.auth.google && this.auth.google.account && this.auth.google.account.profile;
-    }
+    };
 
     Site.prototype.isGoogleAuthenticated = function() {
       return this.auth && this.auth.google && this.auth.google.token;
+    };
+
+    Site.prototype.fetchGoogleAccounts = function(site,account,property,done) {
+      var object = {
+        'accounts': [],
+        'properties': [],
+        'profiles': []
+      }
+      var params = [];
+      if (account) {
+        params.push('account=' + encodeURIComponent(account));
+      }
+      if (property) {
+        params.push('property=' + encodeURIComponent(property));
+      }
+      $http({
+        'method': 'GET',
+        'url': '/api/site/' + this._id + '/accounts/google?' + params.join('&')
+      }).then(
+        function(response) {
+          object.accounts = response.data.accounts;
+          object.properties = response.data.properties;
+          object.profiles = response.data.profiles;
+          done(null,object);
+        },
+        function(error) {
+          done(error);
+        }
+      );
+      return object;
+    };
+
+    Site.prototype.findURLs = function(done) {
+      $http({
+        'method': 'GET',
+        'url': '/api/site/' + this._id + '/urls?sitemapPath=' + encodeURIComponent(this.sitemapPath)
+      }).then(
+        function(response) {
+          done(null,response.data);
+        },
+        function(error) {
+          done(error);
+        }
+      );
     }
 
     return Site;

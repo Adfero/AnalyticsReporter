@@ -6,6 +6,15 @@ var app = angular.module('onemetric', [
 ]);
 
 angular.module('onemetric')
+  .filter('metric', function() {
+    return function(input) {
+      var map = {
+        'hits': 'Hits',
+        'avgTimeOnPage': 'Average Time on Page'
+      }
+      return map[input] ? map[input] : input;
+    };
+  })
   .config(['$stateProvider',function($stateProvider) {
     $stateProvider
       .state('notPermitted', {
@@ -27,8 +36,13 @@ angular.module('onemetric')
         templateUrl: '/partials/site.html',
         controller: 'SiteController'
       })
-      .state('report', {
-        url: '/report/:reportId',
+      .state('app.siteSettings', {
+        url: 'site/:siteId/settings',
+        templateUrl: '/partials/siteSettings.html',
+        controller: 'SiteSettingsController'
+      })
+      .state('app.report', {
+        url: 'site/:siteId/report/:reportId',
         templateUrl: '/partials/report.html',
         controller: 'ReportController'
       })

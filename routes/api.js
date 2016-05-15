@@ -46,6 +46,9 @@ exports.readSite = function(req,res,next) {
 };
 
 exports.listSiteURLs = function(req,res,next) {
+  if (req.query.sitemapPath) {
+    req.site.sitemapPath = req.query.sitemapPath;
+  }
   req.site.getURLs(function(err,urls) {
     if (err) {
       next(err);
@@ -66,7 +69,7 @@ exports.listGoogleAccounts = function(req,res,next) {
 };
 
 exports.updateSite = function(req,res,next) {
-  ['reportURLs','benchmarkURLs','reportStart','reportEnd','benchmarkStart','benchmarkEnd'].forEach(function(prop) {
+  ['benchmarkURLs','benchmarkStart','benchmarkEnd','sitemapPath'].forEach(function(prop) {
     req.site[prop] = req.body[prop];
   });
   if (!req.auth) {

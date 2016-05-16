@@ -3,6 +3,26 @@ var Site = mongoose.model('Site');
 var Report = mongoose.model('Report');
 var async = require('async');
 
+exports.readUser = function(req,res,next) {
+  res.send(req._user.toAPIObject());
+};
+
+exports.updateUser = function(req,res,next) {
+  ['email'].forEach(function(prop) {
+    req._user[prop] = req.body[prop];
+  });
+  if (req.body.password && req.body.password.trim().length > 0) {
+    req._user.setPassword(req.body.password);
+  }
+  req._user.save(function(err) {
+    if (err) {
+      next(err);
+    } else {
+      res.send(req._user.toAPIObject());
+    }
+  });
+};
+
 exports.listSites = function(req,res,next) {
   req.user.getSites(function(err,sites) {
     if (err) {

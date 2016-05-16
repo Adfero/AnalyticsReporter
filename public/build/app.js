@@ -23217,6 +23217,20 @@ angular.module("onemetric.service.site", [ "ngResource", "onemetric.service.vali
     return Site;
 } ]);
 
+angular.module("onemetric.service.user", [ "ngResource" ]).factory("User", [ "$resource", "$http", function($resource, $http) {
+    var User = $resource("/api/user/:id", {
+        id: "@_id"
+    }, {
+        update: {
+            method: "PUT"
+        }
+    });
+    User.prototype.isValid = function() {
+        return this.email && this.email.trim().length > 0;
+    };
+    return User;
+} ]);
+
 angular.module("onemetric.service.validationTools", []).factory("validationTools", [ function() {
     return {
         isFullString: function(string) {
@@ -23233,6 +23247,29 @@ angular.module("onemetric.service.validationTools", []).factory("validationTools
             } else {
                 return false;
             }
+        }
+    };
+} ]);
+
+angular.module("onemetric.controller.account", [ "ui.bootstrap", "onemetric.service.user" ]).controller("AccountController", [ "$window", "$scope", "$state", "$stateParams", "User", "uid", function($window, $scope, $state, $stateParams, User, uid) {
+    $scope.user = User.get({
+        id: uid
+    }, function() {
+        document.title = "My Account";
+    }, function(response) {
+        $state.go("notPermitted", {
+            status: response.status
+        });
+    });
+    $scope.save = function() {
+        $scope.alerts = [];
+        if ($scope.user.isValid()) {
+            $scope.user.$update(function() {
+                $scope.alerts.push({
+                    msg: "Account saved.",
+                    type: "info"
+                });
+            });
         }
     };
 } ]);
@@ -23488,9 +23525,9 @@ angular.module("onemetric.controller.site", [ "ui.bootstrap", "daterangepicker",
     }
 } ]);
 
-var app = angular.module("onemetric", [ "ui.router", "onemetric.controller.app", "onemetric.controller.site", "onemetric.controller.report" ]);
+var app = angular.module("onemetric", [ "ui.router", "onemetric.controller.app", "onemetric.controller.site", "onemetric.controller.report", "onemetric.controller.account" ]);
 
-angular.module("onemetric").filter("metric", function() {
+angular.module("onemetric").value("uid", USER_ID).filter("metric", function() {
     return function(input) {
         var map = {
             hits: "Hits",
@@ -23523,6 +23560,10 @@ angular.module("onemetric").filter("metric", function() {
         url: "site/:siteId/report/:reportId",
         templateUrl: "/partials/report.html",
         controller: "ReportController"
+    }).state("app.account", {
+        url: "account",
+        templateUrl: "/partials/account.html",
+        controller: "AccountController"
     });
 } ]).run([ "$state", "$rootScope", "$location", "$window", function($state, $rootScope, $location, $window) {
     if (window.location.hash == "") {

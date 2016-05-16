@@ -2,10 +2,12 @@ var app = angular.module('onemetric', [
   'ui.router',
   'onemetric.controller.app',
   'onemetric.controller.site',
-  'onemetric.controller.report'
+  'onemetric.controller.report',
+  'onemetric.controller.account'
 ]);
 
 angular.module('onemetric')
+  .value('uid', USER_ID)
   .filter('metric', function() {
     return function(input) {
       var map = {
@@ -45,6 +47,11 @@ angular.module('onemetric')
         url: 'site/:siteId/report/:reportId',
         templateUrl: '/partials/report.html',
         controller: 'ReportController'
+      })
+      .state('app.account', {
+        url: 'account',
+        templateUrl: '/partials/account.html',
+        controller: 'AccountController'
       })
   }])
   .run(['$state', '$rootScope', '$location', '$window', function($state, $rootScope, $location, $window) {

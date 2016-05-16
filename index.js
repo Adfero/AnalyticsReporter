@@ -40,10 +40,16 @@ app.set('view engine', 'jade');
 app.set('views', __dirname + '/views');
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(function(req,res,next) {
+  if (req.user) {
+    app.locals.userIdScript = "var USER_ID = '" + req.user._id + "';";
+  }
+  next();
+});
 
 require('./lib/passport.js')(app);
 
-['Report','Site'].forEach(function(modelName) {
+['Report','Site','User'].forEach(function(modelName) {
   var model = mongoose.model(modelName);
   app.param(modelName.toLowerCase(),model.getForAPI);
 });
@@ -79,6 +85,9 @@ app.get('/login',forwardIfLoggedIn,routes.account.login);
 app.post('/login',forwardIfLoggedIn,routes.account.doLogin);
 
 app.get('/logout',requireLoggedIn,routes.account.logout);
+
+app.get('/api/user/:user',requireLoggedIn,routes.api.readUser);
+app.put('/api/user/:user',requireLoggedIn,routes.api.updateUser);
 
 app.get('/api/site',requireLoggedIn,routes.api.listSites);
 app.post('/api/site',requireLoggedIn,routes.api.createSite);

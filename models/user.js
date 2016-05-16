@@ -45,4 +45,23 @@ schema.methods.getSites = function(done) {
     .exec(done);
 }
 
+schema.methods.toAPIObject = function() {
+  var obj = this.toObject();
+  delete obj.password;
+  return obj;
+}
+
+schema.statics.getForAPI = function(req,res,next,id) {
+  User.findById(id,function(err,object) {
+    if (err) {
+      next(err);
+    } else if (req.user && object && object._id.toString() == req.user._id.toString()) {
+      req._user = object;
+      next();
+    } else {
+      res.sendStatus(404);
+    }
+  })
+};
+
 var User = mongoose.model('User',schema);

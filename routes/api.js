@@ -69,7 +69,7 @@ exports.listGoogleAccounts = function(req,res,next) {
 };
 
 exports.updateSite = function(req,res,next) {
-  ['benchmarkURLs','benchmarkStart','benchmarkEnd','sitemapPath'].forEach(function(prop) {
+  ['name','url','sitemapPath'].forEach(function(prop) {
     req.site[prop] = req.body[prop];
   });
   if (!req.auth) {

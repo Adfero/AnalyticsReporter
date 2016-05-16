@@ -29,15 +29,21 @@ angular.module('onemetric.controller.site', [
           'animation': true,
           'templateUrl': '/partials/reportModal.html',
           'controller': 'RunReportModal',
-          'size': 'md',
+          'size': 'lg',
           'resolve': {
             'report': function() {
+              var start = $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportStart : $scope.site.benchmarkStart;
+              var end = $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportEnd : $scope.site.benchmarkEnd
               return new Report({
-                'reportStart': $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportStart : $scope.site.benchmarkStart,
-                'reportEnd': $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportEnd : $scope.site.benchmarkEnd,
+                'reportStart': start,
+                'reportEnd': end,
+                'benchmarkStart': start,
+                'benchmarkEnd': end,
                 'site': $scope.site,
-                'reportURLs': $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportURLs : []
-              });;
+                'reportURLs': $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].reportURLs : [],
+                'benchmarkURLs': $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].benchmarkURLs : [],
+                'benchmarkURLRegex': $scope.reports && $scope.reports.length > 0 ? $scope.reports[0].benchmarkURLRegex : null
+              });
             },
             'doneCallback': function() {
               return function(report) {
@@ -50,7 +56,7 @@ angular.module('onemetric.controller.site', [
     }
 
     $scope.downloadLink = function(report) {
-      return '/api/report/' + report._id + '/csv';
+      return '/api/report/' + report._id + '/download';
     }
 
     function loadReports() {
@@ -65,8 +71,14 @@ angular.module('onemetric.controller.site', [
       $scope.alerts.splice(index, 1);
     };
 
+    $scope.benchmarkURLType = report.benchmarkURLs ? 'benchmarkURLs' : 'benchmarkURLRegex';
+
     $scope.datePicker = {
-      'dateRange': {
+      'reportDates': {
+        'startDate': $scope.report.reportStart,
+        'endDate': $scope.report.reportEnd
+      },
+      'benchmarkDates': {
         'startDate': $scope.report.reportStart,
         'endDate': $scope.report.reportEnd
       }
@@ -79,11 +91,24 @@ angular.module('onemetric.controller.site', [
       return $scope.report && $scope.report.reportURLs ? $scope.report.reportURLs.join('\n') : '';
     };
 
-    $scope.$watch('datePicker.startDate',function() {
-      $scope.report.reportStart = new Date($scope.datePicker.dateRange.startDate);
+    $scope.benchmarkURLsString = function(urls) {
+      if ($scope.report && typeof urls != 'undefined') {
+        $scope.report.benchmarkURLs = urls.split('\n');
+      }
+      return $scope.report && $scope.report.benchmarkURLs ? $scope.report.benchmarkURLs.join('\n') : '';
+    }
+
+    $scope.$watch('datePicker.reportDates.startDate',function() {
+      $scope.report.reportStart = new Date($scope.datePicker.reportDates.startDate);
     });
-    $scope.$watch('datePicker.endDate',function() {
-      $scope.report.reportEnd = new Date($scope.datePicker.dateRange.endDate);
+    $scope.$watch('datePicker.reportDates.endDate',function() {
+      $scope.report.reportEnd = new Date($scope.datePicker.reportDates.endDate);
+    });
+    $scope.$watch('datePicker.benchmarkDates.startDate',function() {
+      $scope.report.benchmarkStart = new Date($scope.datePicker.benchmarkDates.startDate);
+    });
+    $scope.$watch('datePicker.benchmarkDates.endDate',function() {
+      $scope.report.benchmarkEnd = new Date($scope.datePicker.benchmarkDates.endDate);
     });
 
     $scope.cancel = function() {
@@ -91,6 +116,11 @@ angular.module('onemetric.controller.site', [
     };
 
     $scope.run = function() {
+      if ($scope.benchmarkURLType == 'benchmarkURLs') {
+        $scope.report.benchmarkURLRegex = null;
+      } else {
+        $scope.report.benchmarkURLs = null;
+      }
       var errors = $scope.report.generateValidationFeedback();
       if (errors.length > 0) {
         $scope.alerts = [];
@@ -114,36 +144,9 @@ angular.module('onemetric.controller.site', [
       $scope.alerts.splice(index, 1);
     };
 
-    var now = new Date();
-    var lastWeek = new Date(now.getTime() - (86400000 * 7));
-
-    $scope.datePicker = {
-      'benchmarkDates': {
-        'startDate': lastWeek,
-        'endDate': now
-      }
-    };
-
-    $scope.benchmarkURLsString = function(urls) {
-      if ($scope.site && typeof urls != 'undefined') {
-        $scope.site.benchmarkURLs = urls.split('\n');
-      }
-      return $scope.site && $scope.site.benchmarkURLs ? $scope.site.benchmarkURLs.join('\n') : '';
-    }
-
-    $scope.$watch('datePicker.benchmarkDates.startDate',function() {
-      $scope.site.benchmarkStart = new Date($scope.datePicker.benchmarkDates.startDate);
-    });
-    $scope.$watch('datePicker.benchmarkDates.endDate',function() {
-      $scope.site.benchmarkEnd = new Date($scope.datePicker.benchmarkDates.endDate);
-    });
-
     if ($stateParams.siteId) {
       $scope.site = Site.get({'id': $stateParams.siteId},function() {
         document.title = $scope.site.name + ' Settings | One Metric';
-
-        $scope.site.benchmarkStart = $scope.datePicker.benchmarkDates.startDate = $scope.site.benchmarkStart || lastWeek;
-        $scope.site.benchmarkEnd = $scope.datePicker.benchmarkDates.endDate = $scope.site.benchmarkEnd || now;
 
         loadGoogleAccounts(function() {
           setTimeout(function() {
@@ -164,25 +167,6 @@ angular.module('onemetric.controller.site', [
 
       },function(response) {
         $state.go('notPermitted', {'status': response.status});
-      });
-    }
-
-    $scope.findURLs = function() {
-      $uibModal.open({
-        'animation': true,
-        'templateUrl': '/partials/findURLsModal.html',
-        'controller': 'FindURLsModal',
-        'size': 'lg',
-        'resolve': {
-          'site': function() {
-            return $scope.site;
-          },
-          'doneCallback': function() {
-            return function(urls) {
-              //TODO
-            }
-          }
-        }
       });
     }
 
@@ -225,36 +209,4 @@ angular.module('onemetric.controller.site', [
         });
       }
     }
-  }])
-  .controller('FindURLsModal', ['$scope', '$uibModalInstance', 'site', 'doneCallback', function($scope, $uibModalInstance, site, doneCallback) {
-    $scope.site = site;
-    $scope.alerts = [];
-
-    $scope.findURLs = function() {
-      $scope.site.findURLs(function(err,urls) {
-        if (err) {
-          $scope.alerts.push({
-            'msg': 'There was an error fetching URLs for this site.',
-            'type': 'danger'
-          });
-        } else {
-          $scope.urls = urls;
-        }
-      })
-    }
-
-    $scope.cancel = function() {
-      $uibModalInstance.dismiss('cancel');
-    };
-
-    // $scope.invalidInput = function() {
-    //   return !$scope.site.isValid();
-    // };
-    //
-    // $scope.add = function() {
-    //   $scope.site.$save(function() {
-    //     $uibModalInstance.close();
-    //     doneCallback($scope.site);
-    //   });
-    // };
   }]);

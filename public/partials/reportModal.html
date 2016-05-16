@@ -4,13 +4,37 @@
 </div>
 <div class="modal-body">
   <uib-alert ng-repeat="alert in alerts" type="{{alert.type}}" close="closeAlert($index)">{{alert.msg}}</uib-alert>
-  <div class="form-group">
-    <label for="dateRange">Date Range</label>
-    <input date-range-picker class="form-control date-picker" id="dateRange" name="dateRange" type="text" ng-model="datePicker.dateRange" />
-  </div>
-  <div class="form-group">
-    <label for="reportURLs">Report URLs</label>
-    <textarea rows="5" class="form-control" id="reportURLs" name="reportURLs" type="text" ng-model="reportURLsString" ng-model-options="{ getterSetter: true }"></textarea>
+  <div class="row">
+    <div class="col-md-6">
+      <fieldset>
+        <legend>Benchmark</legend>
+        <div class="form-group">
+          <label for="benchmarkDates">Benchmark Date Range</label>
+          <input date-range-picker class="form-control date-picker" id="benchmarkDates" type="text" ng-model="datePicker.benchmarkDates" />
+        </div>
+        <div class="form-group">
+          <input type="radio" ng-model="benchmarkURLType" value="benchmarkURLs" name="benchmarkURLType" /> <label for="benchmarkURLs">Benchmark URLs</label>
+          <textarea ng-show="benchmarkURLType == 'benchmarkURLs'" rows="5" class="form-control" id="benchmarkURLs" name="benchmarkURLs" type="text" ng-model="benchmarkURLsString" ng-model-options="{ getterSetter: true }"></textarea>
+        </div>
+        <div class="form-group">
+          <input type="radio" ng-model="benchmarkURLType" value="benchmarkURLRegex" name="benchmarkURLType" /> <label for="benchmarkURLRegex">Benchmark URL Regular Expression</label>
+          <input ng-show="benchmarkURLType == 'benchmarkURLRegex'" type="text" class="form-control" id="benchmarkURLRegex" name="benchmarkURLRegex" ng-model="report.benchmarkURLRegex" />
+        </div>
+      </fieldset>
+    </div>
+    <div class="col-md-6">
+      <fieldset>
+        <legend>Report</legend>
+        <div class="form-group">
+          <label for="dateRange">Report Date Range</label>
+          <input date-range-picker class="form-control date-picker" id="dateRange" name="dateRange" type="text" ng-model="datePicker.reportDates" />
+        </div>
+        <div class="form-group">
+          <label for="reportURLs">Report URLs</label>
+          <textarea rows="5" class="form-control" id="reportURLs" name="reportURLs" type="text" ng-model="reportURLsString" ng-model-options="{ getterSetter: true }"></textarea>
+        </div>
+      </fieldset>
+    </div>
   </div>
 </div>
 <div class="modal-footer">

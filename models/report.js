@@ -6,6 +6,10 @@ var schema = new mongoose.Schema({
     'type': mongoose.Schema.Types.ObjectId,
     'ref': 'Site'
   },
+  'benchmarkURLs': [ String ],
+  'benchmarkURLRegex': String,
+  'benchmarkStart': Date,
+  'benchmarkEnd': Date,
   'reportURLs': [ String ],
   'reportStart': Date,
   'reportEnd': Date,

@@ -3,27 +3,9 @@ angular.module('onemetric.service.site', [
   'onemetric.service.validationTools'
 ])
   .factory('Site', ['$resource', '$http', 'validationTools', function($resource, $http, validationTools) {
-    var dateFormatterInterceptor = function (response) {
-      ['benchmarkStart','benchmarkEnd'].forEach(function(prop) {
-        if (response.resource[prop]) {
-          response.resource[prop] = new Date(Date.parse(response.resource[prop]));
-        }
-      });
-      return response;
-    };
-
     var Site = $resource('/api/site/:id', { id: '@_id' }, {
       'update': {
-        'method': 'PUT',
-        'interceptor': {
-          'response': dateFormatterInterceptor,
-        }
-      },
-      'get': {
-        'method': 'GET',
-        'interceptor': {
-          'response': dateFormatterInterceptor,
-        }
+        'method': 'PUT'
       }
     });
 
@@ -40,12 +22,6 @@ angular.module('onemetric.service.site', [
 
     Site.prototype.isDeepValid = function() {
       return this.isBasicValid()
-        && this.benchmarkURLs
-        && this.benchmarkURLs.length > 0
-        && this.benchmarkStart
-        && this.benchmarkEnd
-        && validationTools.isValidDateRange(this.benchmarkStart,this.benchmarkEnd)
-        && validationTools.isValidArrayOfUrls(this.benchmarkURLs)
         && this.hasGoogleProfile();
     };
 
@@ -56,12 +32,6 @@ angular.module('onemetric.service.site', [
       }
       if (!validationTools.isFullString(this.url)) {
         errors.push('Please provide a url.');
-      }
-      if (!validationTools.isValidDateRange(this.benchmarkStart,this.benchmarkEnd)) {
-        errors.push('Please provide a benchmark date range.');
-      }
-      if (!validationTools.isValidArrayOfUrls(this.benchmarkURLs)) {
-        errors.push('Please provide a set of valid sample URLs.');
       }
       if (!this.hasGoogleProfile()) {
         errors.push('Please log in to your Google account and select a profile.');

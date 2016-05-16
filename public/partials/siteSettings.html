@@ -53,19 +53,6 @@
     </div>
   </fieldset>
 
-  <fieldset>
-    <legend>Benchmarking</legend>
-    <div class="form-group">
-      <label for="benchmarkDates">Date Range</label>
-      <input date-range-picker class="form-control date-picker" id="benchmarkDates" type="text" ng-model="datePicker.benchmarkDates" />
-    </div>
-    <div class="form-group">
-      <label for="benchmarkURLs">Sample URLs</label>
-      <textarea rows="5" class="form-control" id="benchmarkURLs" name="benchmarkURLs" type="text" ng-model="benchmarkURLsString" ng-model-options="{ getterSetter: true }"></textarea>
-      <p><button ng-click="findURLs()" class="btn btn-primary btn-xs">Find URLs</button></p>
-    </div>
-  </fieldset>
-
   <button class="btn btn-primary" ng-click="save()">Save</button>
   <a ui-sref="app.site({siteId: site._id})" class="btn btn-default">
     Cancel

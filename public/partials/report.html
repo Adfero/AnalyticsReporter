@@ -1,11 +1,10 @@
 <ol class="breadcrumb">
   <li><a ui-sref="app.site({siteId: report.site._id})">{{ report.site.name }}</a></li>
-  <li class="active">Report</li>
+  <li class="active">{{ report.site.name }} Report</li>
 </ol>
 
 <h1 class="page-header">
   {{ report.site.name }} Report
-  <small>{{ report.reportStart | date:'yyyy-MM-dd' }} to {{ report.reportEnd | date:'yyyy-MM-dd' }}</small>
 </h1>
 
 <h2>Scores</h2>
@@ -30,18 +29,59 @@
   </tbody>
 </table>
 
-<h2>Averages</h2>
-<table class="table table-striped">
-  <thead>
-    <tr>
-      <th>Metric</th>
-      <th>Average</th>
-    </tr>
-  </thead>
-  <tbody>
-    <tr ng-repeat="metric in metrics">
-      <td>{{ metric | metric }}</td>
-      <td>{{ report.averages[metric] }}</td>
-    </tr>
-  </tbody>
-</table>
+<div class="row">
+  <div class="col-md-6">
+    <h2>Averages</h2>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Metric</th>
+          <th>Average</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr ng-repeat="metric in metrics">
+          <td>{{ metric | metric }}</td>
+          <td>{{ report.averages[metric] }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="col-md-6">
+    <h2>Other Information</h2>
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Property</th>
+          <th>Value</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Benchmark Start Date</td>
+          <td>{{ report.benchmarkStart | date:'yyyy-MM-dd' }}</td>
+        </tr>
+        <tr>
+          <td>Benchmark End Date</td>
+          <td>{{ report.benchmarkEnd | date:'yyyy-MM-dd' }}</td>
+        </tr>
+        <tr>
+          <td>Report Start Date</td>
+          <td>{{ report.reportStart | date:'yyyy-MM-dd' }}</td>
+        </tr>
+        <tr>
+          <td>Report End Date</td>
+          <td>{{ report.reportEnd | date:'yyyy-MM-dd' }}</td>
+        </tr>
+        <tr ng-show="report.benchmarkURLs.length > 0">
+          <td>Benchmark URLs</td>
+          <td>{{ report.benchmarkURLs.join(',') }}</td>
+        </tr>
+        <tr ng-show="report.benchmarkURLRegex.trim().length > 0">
+          <td>Benchmark Regular Expression</td>
+          <td>{{ report.benchmarkURLRegex }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

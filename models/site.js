@@ -17,9 +17,6 @@ var schema = new mongoose.Schema({
     'type': Date,
     'default': Date.now
   },
-  'benchmarkURLs': [ String ],
-  'benchmarkStart': Date,
-  'benchmarkEnd': Date,
   'sitemapPath': {
     'type': String,
     'default': '/sitemap.xml'
@@ -51,7 +48,7 @@ schema.methods.buildReport = function(report,done) {
       'avgTimeOnPage': 1
     });
     var _this = this;
-    aggregateReporter.generateReport(this.benchmarkStart,this.benchmarkEnd,report.reportStart,report.reportEnd,this.benchmarkURLs,report.reportURLs,function(err,data) {
+    aggregateReporter.generateReport(report.benchmarkStart,report.benchmarkEnd,report.reportStart,report.reportEnd,report.benchmarkURLRegex || report.benchmarkURLs,report.reportURLs,function(err,data) {
       if (err) {
         done(err);
       } else {
